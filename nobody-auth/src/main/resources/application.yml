@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: nobody_auth
+  datasource:
+    url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: root
+    password: Weshare2016@!
+  security:
+    user:
+      name: nobody
+      password: nobody
+server:
+  port: 8002
+mybatis-plus:
+  type-aliases-package: com.xj.nobody.**.entity,com.xj.nobody.**.domain
+  mapper-locations: classpath:mapper/**/**Mapper.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    web: DEBUG
+    com.xj.auth: debug
+    org.springframework: warn

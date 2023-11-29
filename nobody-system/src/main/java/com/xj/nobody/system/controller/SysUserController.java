@@ -1,6 +1,7 @@
 package com.xj.nobody.system.controller;
 
 import com.xj.nobody.commons.domain.R;
+import com.xj.nobody.commons.entitys.SysUser;
 import com.xj.nobody.system.service.SysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

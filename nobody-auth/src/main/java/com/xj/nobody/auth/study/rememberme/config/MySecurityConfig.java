@@ -10,13 +10,13 @@ import org.springframework.security.web.authentication.rememberme.JdbcTokenRepos
 
 import javax.sql.DataSource;
 
-@Configuration
+//@Configuration
 public class MySecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Autowired
+    //@Autowired
     private DataSource dataSource;
 
-    @Bean
+    //@Bean
     JdbcTokenRepositoryImpl jdbcTokenRepository(){
         JdbcTokenRepositoryImpl repository = new JdbcTokenRepositoryImpl();
         repository.setDataSource(dataSource);

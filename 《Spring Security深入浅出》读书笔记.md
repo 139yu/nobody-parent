@@ -2584,3 +2584,115 @@ Spring Security从三个方面入手返回会话固定攻击：
 
 4. newSession()：登录成功后创建一个新的HttpSession，对应处理类也是`SessionFixationProtectionStrategy`，只不过将里面的`migrateSessionAttributes`属性设置
 为false；该方法不是所有的属性都不拷贝，一些Spring Security使用的属性，如请求缓存，还是会从旧的HttpSession复制到新的HttpSession中国
+
+## 7.3 Session共享
+
+### 7.3.1 集群会话方案
+
+集群环境下的三种方案：
+
+1. Session复制：多个服务器之间互相复制Session信息，Tomcat通过IP组播对这种方案提供支持；缺点是方案占用了带宽、有时延，服务数量越多，效率越低，较少使用
+
+2. Session粘滞：也叫会话保持，在Nginx上通过一致性Hash，将Hash结果系统的请求总是分发到一个服务上去。缺点是无法解决集群中会话并发管理问题
+
+3. Session共享：将不同服务的会话统一放在一个地方，所有服务器共享一个会话，例如Redis，常用
+
+session共享一般使用spring-session可以方便地实现session的管理
+
+### 7.4.2 实战
+
+1. 引入相关依赖：
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.session</groupId>
+    <artifactId>spring-session-data-redis</artifactId>
+</dependency>
+```
+
+2. 配置redis连接
+
+3. 编写配置类：
+```java
+@Configuration
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {
+    @Resource
+    private FindByIndexNameSessionRepository sessionRepository;
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication()
+                .withUser("root")
+                .password("{noop}root")
+                .roles("admin")
+                ;
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .and().csrf().disable()
+                .sessionManagement()
+                .maximumSessions(1)
+                .sessionRegistry(sessionRegistry())
+        ;
+    }
+
+    @Bean
+    SpringSessionBackedSessionRegistry sessionRegistry(){
+        return new SpringSessionBackedSessionRegistry(sessionRepository);
+    }
+}
+
+```
+
+- FindByIndexNameSessionRepository：会话储存和加载的工具，实现类是`RedisIndexedSessionRepository`
+
+- SpringSessionBackedSessionRegistry：用于维护信息注册表
+
+引入spring-session后，无需配置`HttpSessionEventPublisher`实例，因为spring-session中通过SessionRepositoryFilter将请求对象封装为
+SessionRepositoryRequestWrapper，并重写了getSession方法；在重写的getSession方法中，最终返回的是HttpSessionWrapper实例，
+在HttpSessionWrapper定义时，就重写了invalidate方法，当调用会话的invalidate方法去销毁会话时，就会调用RedisIndexedSessionRepository
+中的方法，从Redis中移除对应的会话信息
+
+# 8.HttpFirewall
+
+Spring Security中，通过HttpFirewall来检查请求路径以及参数是否合法，如果合法，才会进入到过滤器链中进行处理
+
+HttpFirewall是一个接口：
+```java
+public interface HttpFirewall {
+
+	//对请求对象进行校验并封装
+	FirewalledRequest getFirewalledRequest(HttpServletRequest request) throws RequestRejectedException;
+
+	//对响应对象进行封装
+	HttpServletResponse getFirewalledResponse(HttpServletResponse response);
+}
+```
+
+- FirewalledRequest：封装后的请求类，实际上只是在HttpServletRequestWrapper的基础上增加了rest方法。当Spring Security过滤器链
+执行完毕时，有FilterChainProxy负责调用reset方法，重置全部或部分属性
+  
+- HttpServletResponse：封装后的响应类，重写了sendRedirect，setHeader，addHeader以及addCookie，在每一个方法中都对其参数进行校验，
+以确保参数中不包含\n和\r
+  
+两个实现类：
+
+- DefaultHttpFirewall：非默认使用
+
+- StrictHttpFirewall：默认使用

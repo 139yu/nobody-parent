@@ -2671,6 +2671,7 @@ SessionRepositoryRequestWrapper，并重写了getSession方法；在重写的get
 
 # 8.HttpFirewall
 
+## 8.1介绍
 Spring Security中，通过HttpFirewall来检查请求路径以及参数是否合法，如果合法，才会进入到过滤器链中进行处理
 
 HttpFirewall是一个接口：
@@ -2696,3 +2697,119 @@ public interface HttpFirewall {
 - DefaultHttpFirewall：非默认使用
 
 - StrictHttpFirewall：默认使用
+
+## 8.2严格模式
+
+严格模式使用的是`StrictHttpFirewall`，Spring Security默认使用
+
+触发请求校验的代码在`FilterChainProxy#doFilterInternal`:
+
+```java
+private void doFilterInternal(ServletRequest request, ServletResponse response,
+			FilterChain chain) throws IOException, ServletException {
+
+	FirewalledRequest fwRequest = firewall.getFirewalledRequest((HttpServletRequest) request);
+	HttpServletResponse fwResponse = firewall.getFirewalledResponse((HttpServletResponse) response);
+    //省略		
+}
+```
+
+FirewallResponse主要是对响应头参数进行校验；
+
+StrictHttpFirewall#getFirewalledRequest中主要调用五个方法：
+
+1. rejectForbiddenHttpMethod：校验请求方法是否合法
+
+2. rejectBlacklistedUrls：校验请求中的非法字符
+
+3. rejectedUntrustedHosts：校验主机消息
+
+4. isNormalized：判断参数格式是否合法
+
+5. containsOnlyPrintableAsciiCharacters：判断请求字符是否合法
+
+### 8.2.1 rejectForbiddenHttpMethod
+
+该方法用于判断请求是否合法；集合`allowedHttpMethods`中保存了常见的七个请求方法：DELETE,GET,PUT,OPTIONS,POST,DELETE,
+ALLOW_ANY_HTTP_METHOD,HEAD；可通过自定义StrictHttpFirewall，调用setUnsafeAllowAnyHttpMethod或setAllowedHttpMethods
+方法定义
+
+### 8.2.2 rejectBlacklistedUrls
+
+该方法用于拒绝不规范请求；
+
+不规范请求定义：
+
+1. 请求URL地址中在编码之前或编码之后，包含了分号，即：;、%3b、%3B。通过setAllowSemicolon方法可以开启或关闭
+
+2. 请求URL地址中在编码之前或编码之后，包含了斜杠，即：%2f、%2F。通过setAllowUrlEncodedSlash方法可以开启或关闭
+
+3. 请求URL地址中在编码之前或编码之后，包含了反斜杠，即\、%5c、%5C。通过setAllowBlackSlash方法可以开启或关闭
+
+4. 请求URL在编码之后包含了%25，或在编码之前包含了%。通过setAllowUrlEncodedPercent方法可以开启或关闭
+
+5. 请求URL在URL编码后包含了英文句号%2e或%2E。通过setAllowUrlEncodedPeriod方法可以开启或关闭
+
+### 8.2.3 rejectedUntrustedHosts 
+
+用于校验Host是否受信任，默认新人所有的Host；可通过setAllowedHostnames方法自定义：
+
+```java
+@Bean
+public HttpFirewall firewall(){
+    StrictHttpFirewall httpFirewall = new StrictHttpFirewall();
+    httpFirewall.setAllowedHostnames(hostname -> {
+        return hostname.equalsIgnoreCase("www.nobody.com");
+    });
+    return httpFirewall;
+}
+```
+如上配置，只有通过"www.nobody.com"才能访问
+### 8.2.4 isNormalized
+
+该方法主要用来检查请求地址是否规范，即不包含“./”，“../”，“/.”
+
+### 8.2.5 containsOnlyPrintableAsciiCharacters
+
+该方法用于校验请求地址中是否包含不可打印的ASCII字符；可打印的ASCII字符范围在“\u0020”到“\u007e”之间
+
+## HttpFirewall普通模式
+
+普通模式中主要做了两件事：
+
+1. 将请求地址中的“//“格式化为”/“
+
+2. 将请求地址中servletPath和pathInfo中用分号隔开的参数提取出来，保留路径
+
+# 9.漏洞保护
+
+## 9.1CSRF攻击与防御
+
+### 9.1.1简介
+
+CSRF（Cross-Site Request Forgery，跨站请求伪造）是一种挟持用户在当前已登录的浏览器上发送恶意请求的攻击方式。
+
+例如当用户登录了“www.nobody.com”网站，任何在同一个浏览器新的选项卡打开了另一个危险网站，网站中有如下代码：
+
+```html
+<img src="https://www.nobody.com/add?name=root&password=root"/>
+```
+
+img标签中的请求就会自动发送出去
+
+### 9.1.2 CSRF防御
+
+Spring提供了两种机制来防御CSRF攻击：
+
+1. 令牌同步模式
+
+2. 在Cookie上指定SameSite属性
+
+无论时那种方式，前提都是请求方式幂等，即HTTP请求中的GET、HEAD、OPTION、TRACE方法不会改变应用的状态
+
+#### 9.1.2.1 令牌同步模式
+
+这是目前主流的CSRF攻击防御方案
+
+具体的操作方式是在每一个HTTP请求中，除了没人自动携带Cookie参数之外，再额外提供一个安全的、随机生成的字符穿，称之为CSRF令牌。这个CSRF令牌
+由服务端生成，生成后在HttpSession中保存一份。当前端的请求达到后，将请求携带的CSRF令牌消息和服务端保存的令牌对比，如果两者不等，则拒绝

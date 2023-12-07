@@ -2811,5 +2811,146 @@ Spring提供了两种机制来防御CSRF攻击：
 
 这是目前主流的CSRF攻击防御方案
 
-具体的操作方式是在每一个HTTP请求中，除了没人自动携带Cookie参数之外，再额外提供一个安全的、随机生成的字符穿，称之为CSRF令牌。这个CSRF令牌
+具体的操作方式是在每一个HTTP请求中，除了默认自动携带Cookie参数之外，再额外提供一个安全的、随机生成的字符穿，称之为CSRF令牌。这个CSRF令牌
 由服务端生成，生成后在HttpSession中保存一份。当前端的请求达到后，将请求携带的CSRF令牌消息和服务端保存的令牌对比，如果两者不等，则拒绝
+
+对于GET、HEAD、OPTIONS、TRACE等方法不会使用CSRF令牌，强行使用会导致令牌泄露
+
+Spring Security默认开启了CSRF攻击防御
+
+如果使用的是thymeleaf，在页面中通过`${_csrf.token}`可以获取令牌，`${_csrf.parameterName}`可以获取令牌对应的参数；
+
+如果是Ajax请求，Spring Security，需要将CSRF令牌放在响应头Cookie中，开发者自行从Cookie中提取CSRF令牌，然后作为参数传到服务端：
+
+```java
+@Configuration
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication()
+                .withUser("nobody")
+                .roles("admin")
+                .password("{noop}nobody");
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .formLogin()
+                .loginProcessingUrl("/login.html")
+                .successHandler((req,resp,auth) -> {
+                    resp.getWriter().write("login success");
+                })
+                .permitAll()
+                .and()
+                .csrf()
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+    }
+}
+```
+
+这里将csrfTokenRepository配置为CookieCsrfTokenRepository，并设置httpOnly为false，否则前端将无法获取到Cookie中的CSRF令牌
+
+在Cookie中，令牌的键为*XSRF-TOKEN*，在Ajax中提交时参数key为`_csrf`。
+
+开启了CSRF防御，需要将CSRF令牌放到请求头或请求参数中，请求才会被允许
+
+#### 9.1.2.2 SameSite
+
+SameSite是Chrome 51开始支持的一个顺序，这种方式通过在Cookie上指定SameSite属性，要求浏览器从外部站点发送请求时，不应携带Cookie信息；
+添加SameSite属性的响应头类似下面这样：
+```cookie
+Set-Cookie: JSESSIONID=randomid;Domain=www.nobody.com;HttpOnly;SameSite=Lax
+```
+
+SameSite属性值有三种：
+
+- Strict：只有同一站点发送的请求才包含Cookie信息，不同站点发送的请求将不会包含Cookie信息
+
+- Lax：同一站点发送的请求或者导航到目标地址的Get请求会自动包含Cookie信息
+
+- None：Cookie将在所有上下文中发送，即允许跨域发送
+
+Spring Security对于SameSite没有直接提供支持，但是Spring Session提供了，在使用是需要引入Spring Session和Redis的依赖，
+提供一个CookieSerializer实例：
+
+```java
+@Bean
+public CookieSerializer httpSessionResolver(){
+    DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
+    //配置属性值
+    cookieSerializer.setSameSite("strict");
+    return cookieSerializer;
+}
+```
+
+#### 9.1.2.3 需要注意的问题
+
+##### 会话超时
+
+CSRF令牌默认保存在HttpSession中，HttpSession可能会因为超时导致失效，解决方式：
+
+1. 最佳方案是提交表单时，通过js获取CSRF令牌，然后获取到的CSRF令牌跟随表单一起提交
+
+2. 当会话快要过期是，前端通过js提醒用户刷新页面，给会话续命
+
+3. 将令牌储存在Cookie中
+
+### 9.1.3源码分析
+
+#### 9.1.3.1 CsrfToken
+
+用于描述CSRF令牌
+
+```java
+public interface CsrfToken extends Serializable {
+    //令牌放在请求头时，获取参数名
+	String getHeaderName();
+    //令牌被当做请求参数时，获取参数名
+	String getParameterName();
+    //具体的令牌
+	String getToken();
+}
+```
+
+两个实现类：
+
+  - DefaultCsrfToken：默认实现类
+
+  - SaveOnAccessCsrfToken：代理类，代理的就是DefaultCsrfToken
+
+#### 9.1.3.2 CsrfTokenRepository
+
+CsrfTokenRepository是Spring Security中提供的CsrfToken的保存接口：
+
+```java
+public interface CsrfTokenRepository {
+    //生成一个CSRF令牌
+	CsrfToken generateToken(HttpServletRequest request);
+	//保存
+	void saveToken(CsrfToken token, HttpServletRequest request,HttpServletResponse response);
+    //读取
+	CsrfToken loadToken(HttpServletRequest request);
+}
+```
+三个实现类：
+
+- HttpSessionCsrfTokenRepository：将token保存在HttpSession中
+
+- CookieCsrfTokenRepository：将token保存在Cookie中
+
+- LazyCsrfTokenRepository：代理类，可以代理上面两个类，代理的目的是延迟保存生成的token。只有当token为null时，才会执行代理类的
+saveToken方法，相当于只执行移除CsrfToken操作
+  
+#### 9.1.3.3 CsrfFilter
+
+Spring Security过滤器链中的一环，在过滤器中校验客户端传来的CSRF令牌是否有效；此类`doFilterInternal`方法中使用的tokenRepository
+对象类型是LazyCsrfTokenRepository；如果获取loadToken为null，会生成token，但是token不为null，LazyCsrfTokenRepository是不会
+保存的，requireCsrfProtectionMatcher校验当前请求是否是GET、HEAD、TRACE、OPTIONS，如果是，直接跳过，也是是不保存token的原因
+
+#### 9.1.3.4 CsrfAuthenticationStrategy
+
+主要用于在登录成功后删除旧的CsrfToken，并生成一个新的CsrfToken；这里的csrfTokenRepository并不是LazyCsrfTokenRepository

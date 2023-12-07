@@ -20,7 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 
-@Configuration
+//@Configuration
 public class MySecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Resource
@@ -48,7 +48,7 @@ public class MySecurityConfig extends WebSecurityConfigurerAdapter {
         ;
     }
 
-    @Bean
+    //@Bean
     SpringSessionBackedSessionRegistry sessionRegistry(){
 
         return new SpringSessionBackedSessionRegistry(sessionRepository);

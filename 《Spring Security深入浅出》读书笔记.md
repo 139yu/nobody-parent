@@ -2954,3 +2954,68 @@ Spring Security过滤器链中的一环，在过滤器中校验客户端传来�
 #### 9.1.3.4 CsrfAuthenticationStrategy
 
 主要用于在登录成功后删除旧的CsrfToken，并生成一个新的CsrfToken；这里的csrfTokenRepository并不是LazyCsrfTokenRepository
+
+## 9.2 HTTP响应头处理
+
+Spring Security显示支持的响应头都是在HeaderWriterFilter中添加的，默认情况下该过滤器会添加到Spring Security过滤器链中，
+HeaderWriterFilter是通过HeadersConfigurer配置的
+
+通过`HeadersConfigurer#getHeaderWriters`方法获取需要添加的响应头（不为null的才添加），默认情况下只有五个不为null：
+
+- contentTypeOptions.writer：负责处理X-Content-Type-Options响应头
+
+- xssProtection.writer：负责处理X-XSS-Protection响应头
+
+- cacheControl.writer：负责处理Cache-Control、Pragma以及Expires响应头
+
+- hsts.writer：负责处理Strict-TransPort-Security响应头
+
+- frameOptions.writer：负责处理X-Frame-Options响应头
+
+### 9.2.1缓存控制
+
+缓存控制的响应头一共有三个：
+
+```cookie
+Cache-Control:no-cache,no-store,max-age=0,must-revalidate
+Pragma:no-cache
+Expires:0
+```
+
+- Cache-Control
+
+HTTP/1.1中引入，请求头和响应头都支持，no-store表示不做任何缓存；no-cache表示缓存但是需要重新验证，数据在客户端，但是需要使用时还是
+会发送请求到服务端，服务端验证缓存是否过期，未过期返回304客户端继续使用，已过期返回最新数据；max-age表示缓存的有效期，单位秒；
+must-revalidate表示缓存在使用一个陈旧资源时，必须先验证它的状态，已过期将不被使用
+
+- Pragma
+
+HTTP/1.0中定义的响应头，雷士与Cache-Control:no-cache，但是不能代替它，主要用来兼容HTTP/1.0的客户端
+
+- Expires
+
+指定了一个日期，在指定日期之后缓存货期，日期值为0，表示已过期
+
+Spring Security默认是不做任何缓存的，这是针对经过Spring Security过滤器的请求，如果请求本身没有经过Spring Security过滤器，该缓存的
+还是会缓存
+
+开启缓存功能：
+
+```java
+@Configuration
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .anyRequest().authenticated()
+                
+                .and().headers().cacheControl().disable()
+                .and()
+                .formLogin()
+                .and().csrf().disable()
+        ;
+    }
+}
+```
+调用`cacheControl().disable()`之后就不会配置Cache-Control、Pragma以及Expires了

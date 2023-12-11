@@ -39,6 +39,7 @@ public class MySecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .anyRequest().authenticated()
+                .and().headers().cacheControl().disable()
                 .and()
                 .formLogin()
                 .and().csrf().disable()

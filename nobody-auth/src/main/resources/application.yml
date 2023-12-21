@@ -5,16 +5,17 @@ spring:
     url: jdbc:mysql://localhost:3306/nobody?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
     username: root
     password: 520..xj/
-  security:
-    user:
-      name: nobody
-      password: nobody
+
 
   redis:
     host: 127.0.0.1
     port: 6379
 server:
-  port: 8002
+  port: 8443
+  ssl:
+    key-store: classpath:nobody.p12
+    key-alias: tomcathttps
+    key-store-password: 123456
 mybatis-plus:
   type-aliases-package: com.xj.nobody.**.entity,com.xj.nobody.**.domain
   mapper-locations: classpath:mapper/**/**Mapper.xml

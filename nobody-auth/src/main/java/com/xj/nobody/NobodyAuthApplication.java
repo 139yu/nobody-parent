@@ -14,10 +14,5 @@ public class NobodyAuthApplication {
         SpringApplication.run(NobodyAuthApplication.class);
     }
 
-    @Bean
-    public CookieSerializer httpSessionResolver(){
-        DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
-        cookieSerializer.setSameSite("strict");
-        return cookieSerializer;
-    }
+
 }

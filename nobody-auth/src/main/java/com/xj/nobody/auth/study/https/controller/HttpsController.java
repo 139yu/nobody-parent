@@ -1,22 +1,21 @@
-package com.xj.nobody.auth.study.rememberme.controller;
+package com.xj.nobody.auth.study.https.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-//@RestController
-public class TestController {
+@RequestMapping("https")
+@RestController
+public class HttpsController {
 
     @GetMapping("hello")
     public String hello(){
         return "hello";
     }
-    @GetMapping("admin")
-    public String admin(){
-        return "admin";
-    }
-    @GetMapping("rememberMe")
-    public String rememberMe(){
-        return "rememberMe";
+
+
+    @GetMapping("index")
+    public String index(){
+        return "index";
     }
 }

@@ -3019,3 +3019,252 @@ public class MySecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 调用`cacheControl().disable()`之后就不会配置Cache-Control、Pragma以及Expires了
+
+### 9.2.2
+
+相当于一个提示标志，提示客户端一定要遵循Content-Type中对MIME类型的设定，而不能对其修改；配置后的响应头如下：
+
+```cookie
+X-Content-Type-Options:nosniff
+```
+
+可通过如下方式移除X-Content-Type-Options：
+
+```java
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .anyRequest().authenticated()
+                
+                .and().headers().contentTypeOptions().disable()
+                .and()
+                .formLogin()
+                .and().csrf().disable()
+        ;
+    }
+}
+```
+
+### 9.2.3Strict-Transport-Security
+
+用来指定客户端只能通过HTTPS访问服务端，不能通过HTTP访问
+
+```html
+Strict-Transport-Security: max-age=31536000;includeSubDomains
+```
+
+- max-age：表示在收到这个请求后的多少秒时间内，凡是访问这个域名下的请求都使用HTTPS请求
+
+- includeSubDomains：可选参数，如果被指定，第一条规则也适用于子域名
+
+如果当前请求时HTTPS请求才会添加此请求头，具体实现在`HstsHeaderWriter#writerHeaders`方法中
+
+利用Java自带的keytool工具生成一个HTTPS证书：
+
+```shell
+keytool -genkey -alias tomcathttps -keyalg RSA -keysize 2048 -keystore nobody.p12 -validity 365
+```
+
+- genkey：表示要创建一个新的秘钥
+
+- alias：keystore的别名
+
+- keyalg：使用的加密算法是RSA
+
+- keysize：密钥的长度
+
+- keystore：生成的秘钥存放的位置
+
+- validity：密钥的有效时间，单位为天
+
+将生成的秘钥放在resources目录下，然后配置：
+
+```yaml
+server:
+  port: 8002
+  ssl:
+    key-store: classpath:nobody.p12
+    key-alias: tomcathttps
+    key-store-password: 123456
+```
+
+### 9.2.4X-Frame-Options
+
+用来告诉浏览器是否允许一个页面在frame、iframe、embed或者object中展现，避免发生单机劫持，有三种不同取值：
+
+- deny：表示不允许在frame中展示
+
+- sameorigin：表示可以再相同域名页面的frame中展示
+
+- allow-from uri：表示页面可以在指定来源的frame中展示
+
+### 9.2.5 X-XSS-Protection
+
+告诉浏览器，当检测到跨站脚本攻击时，浏览器将停止加载页面；四种不同的取值：
+
+- 0：表示禁止XSS过滤
+
+- 1：表示启用XSS；如果检测到跨站脚本攻击（浏览器默认），浏览器将清除页面（删除不安全部分）
+
+- 1;mode=block：表示启用XSS过滤。如果检测到攻击，浏览器将不会清除页面，而是阻止页面加载
+
+- 1;report=<reporting-URI>：表示启用XSS过滤；如果检测到跨站脚本攻击，浏览器将清除页面，并使用CSP report-uri指令的功能发送违规
+报告（Chrome）支持
+  
+响应头如下：
+
+```html
+X-XSS-Protection: 1;mode=block
+```
+
+### 9.2.6Content-Security-Policy
+
+内容安全策略是一个额外的安全层，用于检测并削弱某些特定类型的攻击，例如跨站脚本和数据注入。
+
+相当于通过一些白名单明确告诉客户端哪些外部资源可以加载和执行
+
+### 9.2.7Referer-Policy
+
+描述了用户从哪里进入到当前网页
+
+### 9.2.8Feature-Policy
+
+提供了一种可以再本页面或包含iframe上启用或禁止浏览器特性的机制
+
+### 9.2.9Clear-Site-Data
+
+一般用在注销登录响应头中，表示告诉浏览器清除当前网站相关的数据
+
+## 9.3HTTP通信安全
+
+HTTP通信安全主要从三个方面入手：
+
+1. 使用HTTPS代替HTTP
+
+2. Strict—Transport-Security配置
+
+3. 代理服务器配置
+
+### 9.3.1 使用HTTPS
+
+Spring Security提供了许多有助于HTTPS使用的功能。
+
+#### 9.3.1.1具体用法
+
+前提是创建HTTPS证书，并配置到Spring Boot项目中
+
+修改端口号为8443，https的访问端口是8443；支持HTTP配置如下：
+
+```java
+/**
+ * 添加一个Connector，让tomcat同时监听8080端口
+ */
+@Configuration
+public class TomcatConfig {
+    @Bean
+    TomcatServletWebServerFactory tomcatServletWebServerFactory(){
+        TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+        factory.addAdditionalTomcatConnectors(createTomcatConnector());
+        return factory;
+    }
+
+    public Connector createTomcatConnector(){
+        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+        connector.setScheme("http");
+        connector.setPort(8080);
+        return connector;
+    }
+}
+```
+
+此时启动项目后可以使用http和https访问。
+
+配置以`/http/**`的请求只能以http访问，`https/**`的请求只能以https访问：
+
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .and()
+                .requiresChannel().antMatchers("/https/**")
+                //要求协议是https
+                .requiresSecure()
+                .antMatchers("/http/**")
+                //要求协议是http
+                .requiresInsecure()
+                .and().csrf().disable();
+    }
+}
+```
+通过requiresChannel()方法开启配置，requiresSecure()表示该请求是HTTPS协议，如果不是，重定向到HTTPS协议请求；requiresInsecure()
+要求是HTTP协议，如果不是，重定向到HTTP协议
+
+### 9.3.2代理服务器配置
+
+如果使用nginx作为均衡负载服务器，需要确保代理服务器和Spring Security的配置是正确的，以便Spring Security能获取到请求的真实IP
+
+需要在代理服务器中配置X-Forward-*以便将客户端真实的信息转发到后端，不同的Servlet容器以及Spring框架都有各自的方式从请求头中获取客户端
+真实的IP地址、Host以及请求协议等，Spring框架是通过ForwardedHeaderFilter过滤器来处理
+
+# 10.HTTP认证
+
+HTTP提供了一个用于权限控制和认证的通用方式，这种认证方式通过HTTP请求头来提供认证信息，而不是通过表单登录：
+
+- HTTP Basic authentication
+
+- HTTP Digest authentication
+
+## 10.1HTTP Basic authentication
+
+HTTP基本认证，将用户的登录名/密码经过Base64编码后放在请求头的Authorization字段中，从而完成认证
+
+流程如下：
+
+![](asset/CmQUOWCPmgOEf06wAAAAAH3Z0AM158194498.jpg)
+
+1. 客户端发起请求：
+```http request
+GET /hello HTTP/1.1
+Host:localhost:8080
+```
+
+2. 服务端收到请求后发现用户还未认证，于是给出如下响应：
+```http request
+HTTP/1.1 401
+WWW-Authenticate: Basic realm="Realm"
+```
+WWW-Authenticate响应头定义了使用何种方式去完成身份认证。常见的有HTTP基本认证、Bearer（OAuth2.0认证）、Digest（HTTP摘要认证）等
+
+3. 客户端收到服务端的响应后，将用户名/密码使用Base64编码之后放在请求头中，再次发起请求：
+```http request
+GET /hello HTTP/1.1
+Host:location:8080
+Authorization: Basic amF2YWJveToxMiM=
+```
+
+4. 服务端解析Authorization字段，完成与用户身份校验，最后将资源返回客户端：
+```http request
+HTTP/1.1 200
+Content-Type: text/html;charset=UTF-8
+Content-Length: 6
+```
+
+弊端：HTTP基本认证未对传输的凭证加密，仅凭base64无法保证信息安全
+
+## 10.2 HTTP Digest authentication
+
+### 10.2.1
+
+HTTP摘要认证一入了一系列增强安全性的参数，以防止各种存在的网络攻击，但依然存在问题，例如不支持bCrypt、PBKDF、SCrypt等加密方式
+
+认证流程与HTTP基本认证流程一致，不同的是每次传递的参数不同，具体流程：
+
+![](asset/CmQUOGCPmgOEFZkeAAAAAGUFSx8476628445.jpg)

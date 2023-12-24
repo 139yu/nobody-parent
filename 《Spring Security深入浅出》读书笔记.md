@@ -3268,3 +3268,102 @@ HTTP摘要认证一入了一系列增强安全性的参数，以防止各种存�
 认证流程与HTTP基本认证流程一致，不同的是每次传递的参数不同，具体流程：
 
 ![](asset/CmQUOGCPmgOEFZkeAAAAAGUFSx8476628445.jpg)
+
+### 10.2.2具体用法
+
+HTTP摘要认证没有自动化配置，需要手动配置：
+
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+  
+    @Bean
+    @Override
+    public UserDetailsService userDetailsServiceBean() throws Exception {
+        InMemoryUserDetailsManager userDetailsManager = new InMemoryUserDetailsManager();
+        userDetailsManager.createUser(User.withUsername("nobody").password("nobody").roles("admin").build());
+        return userDetailsManager;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return NoOpPasswordEncoder.getInstance();
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests().anyRequest().authenticated()
+                .and().csrf().disable()
+                .exceptionHandling().authenticationEntryPoint(digestAuthenticationEntryPoint())
+                .and().addFilter(digestAuthenticationFilter());
+    }
+
+  DigestAuthenticationEntryPoint digestAuthenticationEntryPoint(){
+        DigestAuthenticationEntryPoint entryPoint = new DigestAuthenticationEntryPoint();
+        entryPoint.setNonceValiditySeconds(3600);
+        entryPoint.setRealmName("myrealm");
+        entryPoint.setKey("nobody");
+        return entryPoint;
+    }
+
+    DigestAuthenticationFilter digestAuthenticationFilter() throws Exception {
+        DigestAuthenticationFilter filter = new DigestAuthenticationFilter();
+        filter.setUserDetailsService(userDetailsServiceBean());
+        filter.setAuthenticationEntryPoint(digestAuthenticationEntryPoint());
+        return filter;
+    }
+
+}
+```
+
+1. 提供一个DigestAuthenticationEntryPoint实例，用户发起一个没有认证的请求时，由该实例处理；配置实例时需要提供一个有效，RealmName
+以及一个key
+   
+2. 创建一个DigestAuthenticationFilter，并添加到Spring Security过滤器链中
+
+3. 配置一个UserDetailsService
+
+4. 配置一个PasswordEncoder
+
+由于客户端对明文密码进行Hash运算，所以服务端也要保存用户的明文密码。
+
+在DigestAuthenticationFilter过滤器中有个passwordAlreadyEncoded属性，表示用户密码是否已经编码，默认为false。若要对密码进行编码，
+将该属性设置为true，然后将username+":"+realm+":"+password使用MD5加密，将计算结果保存为用户密码。
+这样配置之后PasswordEncoder依然是NoOpPasswordEncoder
+
+
+# 11.跨域问题
+
+## 11.1CORS
+
+CORS中新增了一组HTTP请求字段，通过这些字段，服务器告诉浏览器，哪些网站通过浏览器有权限访问哪些资源。同时规定对那些可能修改服务器数据的HTTP
+请求方法，浏览器必须首先使用OPTIONS方法发起一个预检请求，预检请求的目的是查看服务端是否支持即将发起的跨域请求，如果服务端允许，才能发起实际
+的HTTP请求。在预检请求的返回中，服务端也可以通知客户端，是否需要携带身份凭证。
+
+### 预检请求
+
+```http request
+OPTIONS /put HTTP/1.1
+Host:localhost:8080
+Access-Control-Request-Method:PUT
+Origin: http://localhost:8080
+......
+```
+
+预检请求方法为OPTIONS，请求头Origin字段告诉服务端当前页面所在的域，请求头Access-Control-Request-Method告诉服务端即将发起的跨域
+请求所使用的方法
+
+如果服务端支持跨域请求，预检请求的响应头中应包含如下字段：
+
+```http request
+HTTP/1.0 200
+Access-Control-Allow-Origin: http://localhost:8080
+Access-Control-Allow-Method:PUT
+Access-Control-Max-Age: 3600
+```
+
+Access-Control-Allow-Origin字段告诉浏览器可以访问该资源的域，当浏览器收到这样的响应头之后，提取该字段的值，发现该值包含当前页面所在的域
+，就知道这个跨域是被允许的，因此不再对前端的跨域请求进行限制
+
+Access-Control-Max-Age表示预检请求的有效期

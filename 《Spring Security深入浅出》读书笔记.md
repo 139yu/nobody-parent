@@ -3367,3 +3367,211 @@ Access-Control-Allow-Origin字段告诉浏览器可以访问该资源的域，�
 ，就知道这个跨域是被允许的，因此不再对前端的跨域请求进行限制
 
 Access-Control-Max-Age表示预检请求的有效期
+
+## 11.2Spring处理方案
+
+### 11.2.1 @CrossOrigin
+
+@CrossOrigin个属性含义：
+
+- allowCredentials：浏览器是否应该发送凭证信息，如Cookie
+
+- allowedHeaders：请求被允许的请求头字段，*表示所有字段
+
+- exposedHeaders：哪些响应头可以作为响应的一部分暴露出来。只可以一一列举，通配符*无效
+
+- maxAge：预检请求的有效期，有效期内不必再次发送预检请求，没人1800秒
+
+- methods：允许的方法，*表示所有
+
+- origins：允许的域，*表示所有
+
+执行过程：
+
+1. @CrossOrigin在AbstractHandlerMethodMapping的内部类MappingRegistry的registry方法中完成解析，注解中的内容会被解析成一个配置
+对象CorsConfiguration
+   
+2. 将主表所标记的请求方法对象HandlerMethod和CorsConfiguration一一对应存入一个名为corsLookup的Map集合中
+
+3. 当请求到达DispatcherServlet#doDispatch方法之后，调用AbstractHandlerMapping#getHandler方法获取执行链HandlerExecutionChain
+时，回从corsLookup集合中获取到CorsConfiguration对象
+   
+4. 根据获取到的CorsConfiguration对象构建一个CorsInterceptor拦截器
+
+5. 在拦截器中触发对DefaultCorsProcessor#processRequest的调用，跨域请求的校验工作就在此方法中
+
+### 11.2.2 addCorsMappings
+
+@CrossOrigin需要添加在不同的Controller上，通过重写WebMvcConfigurerComposite#addCorsMappings可以全局配置
+
+```java
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry
+                .addMapping("/**")
+                .allowedMethods("*")
+                .allowedHeaders("*")
+                .allowedHeaders("*")
+                .allowCredentials(false)
+                .exposedHeaders("")
+                .maxAge(3600);
+    }
+}
+```
+
+addMappings表示要处理的请求地址，其他方法含义和@CrossOrigin相同
+
+这两种配置跨域的方式殊途同归，最终目的都是配置一个CorsConfiguration对象，并根据该对象创建CorsInterceptor拦截器，然后在
+CorsInterceptor拦截器中触发DefaultCorsProcessor#processRequest方法的执行，完成跨域的校验。这里的跨域校验都是由
+DispatcherServlet中的方法触发的，而DispatcherServlet的执行是在Filter之后
+
+### 11.2.3 CorsFilter
+
+CorsFilter是Spring Web中提供的一个处理跨域的过滤器，也可通过配置该过滤器处理跨域：
+
+```java
+@Configuration
+public class WebMvcFilterConfig {
+  @Bean
+  FilterRegistrationBean<CorsFilter> corsFilter(){
+    FilterRegistrationBean<CorsFilter> registrationBean = new FilterRegistrationBean<>();
+    CorsConfiguration corsConfiguration = new CorsConfiguration();
+    corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
+    corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
+    corsConfiguration.setAllowedOrigins(Collections.singletonList("*"));
+    corsConfiguration.setMaxAge(3600L);
+    corsConfiguration.setAllowCredentials(false);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/*",corsConfiguration);
+    registrationBean.setFilter(new CorsFilter(source));
+    registrationBean.setOrder(-1);
+    return registrationBean;
+  }
+}
+```
+
+三种跨域方式说明：
+
+- @CrossOrigin和重写addCorsMappings方法同时配置，这两种方式中关于跨域的配置会自动合并，跨域在CorsInterceptor中只处理了一次
+
+- @@CrossOrigin和CorsFilter同时配置，或者重写重写addCorsMappings方法和CorsFilter同时配置，都会导致跨域在CorsInterceptor和
+CorsFilter中个处理一次，降低程序运行效率
+  
+## 11.3Spring Security处理方案
+
+项目添加Spring Security依赖之后，通过@CrossOrigin或者重写addCorsMappings方法配置的跨域都会失效；通过CorsFilter配置的则要看过滤器
+优先级，优先级高于Spring Security过滤器则依然有效，低于的则会失效。
+
+Filter、DispatcherServlet以及Interceptor执行顺序：
+
+![](asset/CmQUOWCPmgSEcyPMAAAAANT2G1o704620264.jpg)
+
+非简单请求都要首先发送一个预检请求，预检请求不会携带认证信息，所以有被Spring Security拦截的可能。
+
+### 11.3.1 特殊处理OPTIONS请求
+
+如果还想继续通过@CrossOrigin或重写addCorsMappings方法配置跨域，可以给OPTIONS请求单独放行：
+
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .antMatchers(HttpMethod.OPTIONS).permitAll()
+                .anyRequest().authenticated()
+                .and().httpBasic()
+                .and().csrf().disable();
+    }
+}
+```
+
+但是这种方法不安全，不推荐使用
+
+### 11.3.2继续使用CorsFilter
+
+只要将CorsFilter的优先级设置高于Spring Security即可：
+
+```java
+@Configuration
+public class WebMvcFilterConfig {
+    @Bean
+    FilterRegistrationBean<CorsFilter> corsFilter(){
+        FilterRegistrationBean<CorsFilter> registrationBean = new FilterRegistrationBean<>();
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
+        corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
+        corsConfiguration.setAllowedOrigins(Collections.singletonList("*"));
+        corsConfiguration.setMaxAge(3600L);
+        corsConfiguration.setAllowCredentials(false);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/*",corsConfiguration);
+        registrationBean.setFilter(new CorsFilter(source));
+        registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registrationBean;
+    }
+}
+```
+
+过滤器优先级数字越小，优先级越高，只要CorsFilter优先级高于FilterChainProxy即可,FilterChainProxy的优先级在
+SecurityFilterAutoConfiguration中配置
+
+### 11.3.3专业解决方案
+
+Spring Security中提供了更加专业的方式来解决预检请求所面临的问题：
+
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and().httpBasic()
+                .and().cors().configurationSource(corsConfigurationSource())
+                .and().csrf().disable();
+    }
+    
+    CorsConfigurationSource corsConfigurationSource(){
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setAllowedMethods(Collections.singletonList("*"));
+        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:8080"));
+        configuration.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**",configuration);
+        return source;
+    }
+}
+```
+
+首先需要提供一个CorsConfigurationSource实例，将跨域的各项配置都填充好，然后在configure(HttpSecurity http)方法中通过cors()开启
+跨域配置，将CorsConfigurationSource实例设置进去。
+
+cors()方法开启了对CorsConfigurer的配置，它的configure犯法中获取了一个CorsFilter并添加到Spring Security过滤器链中（获取过滤器
+有四种方式），HttpSecurity#addFilter(Filter filter)方法会先对过滤器进行排序，见FilterComparator类；CorsFilter的位置在
+HeaderWriterFilter之后，在CsrfFilter之前，这个时候还没到认证过滤器
+
+实际开发中推荐使用这种方式处理跨域问题
+
+# 12.异常处理
+
+## 12.1异常体系
+
+认证异常：
+
+![](asset/CmQUOGCPmgmEEStwAAAAAFrPEps163525630.jpg)
+
+权限异常：
+
+![](asset/CmQUOWCPmgmEC6nQAAAAAOmTeSY833846509.jpg)
+
+## 12.2ExceptionTranslationFilter原理
+
+Spring Security中的异常处理主要是ExceptionTranslationFilter过滤器中完成的，该过滤器主要处理AuthenticationException和
+AccessDeniedException类型异常，其他异常则会继续抛出给上一场容器处理，如果是自定义异常类，框架不会处理，会继续抛出

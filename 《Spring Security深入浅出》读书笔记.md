@@ -3574,4 +3574,49 @@ HeaderWriterFilter之后，在CsrfFilter之前，这个时候还没到认证过�
 ## 12.2ExceptionTranslationFilter原理
 
 Spring Security中的异常处理主要是ExceptionTranslationFilter过滤器中完成的，该过滤器主要处理AuthenticationException和
-AccessDeniedException类型异常，其他异常则会继续抛出给上一场容器处理，如果是自定义异常类，框架不会处理，会继续抛出
+AccessDeniedException类型异常，其他异常则会继续抛出给上一场容器处理，如果是自定义异常类，框架不会处理，会继续抛出；
+
+exceptionHandling()方法就是调用ExceptionHandlingConfigurer去配置ExceptionTranslationFilter：
+
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests().anyRequest().authenticated()
+                .and().exceptionHandling();
+ 
+    }
+}
+```
+在ExceptionHandlingConfigurer#configure方法中，会为ExceptionTranslationFilter设置
+AuthenticationEntryPoint（认证失败的处理器）和AccessDeniedHandler（权限异常处理器）；
+
+### AuthenticationEntryPoint
+
+AuthenticationEntryPoint通过ExceptionHandlingConfigurer#getAuthenticationEntryPoint方法获取，最终通过
+ExceptionHandlingConfigurer#createDefaultEntryPoint返回；
+在createDefaultEntryPoint方法中有个defaultEntryPointMappings变量，是LinkedHashMap<RequestMatcher, AuthenticationEntryPoint>
+类型，即可以针对不同请求给出不同的认证失败处理器，多个由代理类处理。
+
+Spring Security项目不做任何配置情况下，表单登录配置类FormLoginConfigurer在初始化时会设置登录页面，在设置登录页面的过程中会为
+defaultEntryPointMappings设置认证失败处理器，实例是LoginUrlAuthenticationEntryPoint；
+
+HTTP基本认证也会，对应的实例是BasicAuthenticationEntryPoint。
+
+### AccessDeniedHandler
+
+AccessDeniedHandler的获取流程和AuthenticationEntryPoint基本一致，也有一个defaultDeniedHandlerMappings变量，可以为不同的
+路径配置不同的鉴权失败处理器，多个则可以通过代理类统一处理。
+
+不同的是defaultDeniedHandlerMappings默认是空的
+
+### ExceptionTranslationFilter
+
+ExceptionTranslationFilter在整个Spring Security过滤器链中排名倒数第二，倒数第一的是FilterSecurityInterceptor；
+在FilterSecurityInterceptor中将会对用户的身份进行校验，不合法则抛出异常，交由ExceptionTranslationFilter处理
+
+## 12.3自定义异常配置
+

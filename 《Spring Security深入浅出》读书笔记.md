@@ -3620,3 +3620,69 @@ ExceptionTranslationFilter在整个Spring Security过滤器链中排名倒数第
 
 ## 12.3自定义异常配置
 
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and().formLogin()
+                .and().exceptionHandling()
+                .authenticationEntryPoint(((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("please login");
+                }))
+                .accessDeniedHandler(((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("forbidden");
+                }))
+                .and().csrf().disable();
+    }
+}
+```
+如上配置，自定义了authenticationEntryPoint，会替换默认LoginUrlAuthenticationEntryPoint，所以会导致无法访问登录页面，只能自定义
+登录页面，并对登录页面请求放行，如果只配置 .antMatchers("/login").permitAll()只会返回404
+如果要返回中文，需配置response.setContentType("text/html;charset=utf-8");
+
+针对不同接口配置不同的异常处理器：
+```java
+@Configuration
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        AntPathRequestMatcher qqMatch = new AntPathRequestMatcher("/qq/**");
+        AntPathRequestMatcher wxMatch = new AntPathRequestMatcher("/wx/**");
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and().formLogin()
+                .and().exceptionHandling()
+                .defaultAuthenticationEntryPointFor(((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("请登录QQ");
+                }),qqMatch)
+                .defaultAccessDeniedHandlerFor(((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("QQ用户权限不足");
+                }),qqMatch)
+                .defaultAuthenticationEntryPointFor(((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("请登录WX");
+                }),wxMatch)
+                .defaultAccessDeniedHandlerFor(((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType("text/html;charset=utf-8");
+                    response.getWriter().write("WX用户权限不足");
+                }),qqMatch)
+                .and().csrf().disable();
+    }
+}
+```
+

@@ -3686,3 +3686,83 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
+# 13.权限管理
+
+## 13.1 Spring Security权限管理策略
+
+- 基于过滤器的权限管理（FilterSecurityInterceptor）
+
+主要用来拦截HTTP请求，拦截下来之后根据请求地址进行权限校验
+
+- 基于AOP的权限管理（MethodSecurityInterceptor）
+
+主要用来处理方法级别的权限管理。当需要调用一个方法时，，通过AOP将操作拦截下来，然后判断用户是否
+具备相关的权限
+
+## 13.2核心概念
+
+### 13.2.1 角色与权限
+
+在Spring Security中，处理方式基本一样，唯一的区别是Spring Security在多个地方会自动给角色添加一个ROLE_前缀，权限不加。
+
+如果系统同时存在角色和权限，可以使用GrantedAuthority的实现类SimpleGrantedAuthority来表示一个权限，将权限描述成为一个字符串：
+
+```java
+public class Role implements GrantedAuthority {
+    private String roleName;
+    private List<SimpleGrantedAuthority> authorities;
+    @Override
+    public String getAuthority() {
+        return roleName;
+    }
+    //getter setter
+}
+```
+
+角色继承自GrantedAuthority，一个角色对应多个权限，定义用户类时将角色转换成权限：
+
+```java
+public class User implements UserDetails {
+  private List<Role> roles = new ArrayList<>();
+
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+    for (Role role : roles) {
+      authorities.addAll(role.getAuthorities());
+    }
+    return authorities.stream().distinct().collect(Collectors.toList());
+  }
+}
+```
+
+### 13.2.2角色继承
+
+Spring Security通过RoleHierarchy对角色继承提供支持：
+
+```java
+public interface RoleHierarchy {
+    //返回真正可触达的权限
+    Collection<? extends GrantedAuthority> getReachableGrantedAuthorities(Collection<? extends GrantedAuthority> var1);
+}
+```
+
+此接口提供了一个实现类RoleHierarchyImpl，可通过此类来定义角色继承关系，例如ROLE_C继承ROLE_D，ROLE_B继承ROLE_C，ROLE_A继承ROLE_B：
+
+```java
+@Bean
+RoleHierarchy roleHierarchy(){
+    RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+    roleHierarchy.setHierarchy("ROLE_A > ROLE_B > ROLE_C > ROLE_D");
+    return roleHierarchy;
+}
+```
+
+### 13.2.3两种处理器
+
+无论是基于过滤器的权限管理还是基于AOP的权限管理，都涉及一个前置处理器和后置处理器。
+
+基于过滤器的权限管理会在前置处理器判断用户是否具备相应的权限，后置处理器一般不工作。
+
+基于AOP的权限管理中，在前置处理器中判断用户是否具备调用目标方法的权限，如果具备则继续执行。在目标方法给出结果后，
+在MethodSecurityInterceptor#invoke方法中由后置处理器再去 对返回结果进行过滤或鉴权

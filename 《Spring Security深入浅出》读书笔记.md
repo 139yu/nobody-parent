@@ -3766,3 +3766,158 @@ RoleHierarchy roleHierarchy(){
 
 基于AOP的权限管理中，在前置处理器中判断用户是否具备调用目标方法的权限，如果具备则继续执行。在目标方法给出结果后，
 在MethodSecurityInterceptor#invoke方法中由后置处理器再去 对返回结果进行过滤或鉴权
+
+### 13.2.4前置处理器
+
+#### 13.2.4.1 投票器
+
+投票器针对是否允许某个操作进行投票，接口定义：
+```java
+public interface AccessDecisionVoter<S> {
+    //投票通过
+    int ACCESS_GRANTED = 1;
+    //弃权
+    int ACCESS_ABSTAIN = 0;
+    //不通过
+    int ACCESS_DENIED = -1;
+    //判断是否支持处理ConfigAttribute对象
+    boolean supports(ConfigAttribute attribute);
+    //判断是否支持处理受保护的对象
+    boolean supports(Class<?> clazz);
+
+  /**
+   * 具体的投票方法
+   * @param authentication 当前用户所具备的权限
+   * @param object 受保护的安全对象，如果是URL，则Object是FilterInvocation对象，如果是方法，则是MethodInvacation对象
+   * @param attributes  访问受保护对象所需要的权限
+   * @return
+   */
+    int vote(Authentication authentication, S object, Collection<ConfigAttribute> attributes);
+}
+```
+
+投票器实现类：
+
+- RoleVoter：根据主体角色进行投票，默认情况下角色需以“ROLE_”开头，否则返回flase
+
+- RoleHierarchyVoter：继承自RoleVoter，投票逻辑一直，不同的是此类支持角色继承
+
+- WebExpressionVoter：基于URL地址进行权限控制时的投票器（支持SpEL）
+
+- Jsr250Voter：处理JSR-250权限注解投票器，如@PermitAll，@DenyAll等
+
+- AuthenticatedVoter：用户判断当前用户的认证形式，用三种取值，IS_AUTHENTICATED_FULLY要求用户既不是匿名用户也不是通过RememberMe进行认证；
+  IS_AUTHENTICATED_REMEMBERED在前者的基础上允许用户通过RememberMe登录；IS_AUTHENTICATED_ANONYMOUSLY匿名用户与RememberMe认证都允许
+  
+- AbstractAclVoter：基于ACL进行权限控制时的投票器
+
+- AclEntryVoter：继承自AbstractAclVoter，基于Spring Security提供的ACL权限系统的投票器
+
+- PreInvocationAuthorizationAdviceVoter：处理@PreFilter和@PreAuthorize注解的投票器
+
+投票器可以单独使用也可以多个一起使用，也可自定义投票器，但是投票结果并不是最终结果，最终结果要看决策器
+
+#### 13.2.4.2 决策器AccessDecisionManager
+
+决策器会同事管理多个投票器，有它调用投票器进行投票，根据投票结果做出相应的决策：
+
+```java
+public interface AccessDecisionManager {
+  /**
+   * 决策方法，判断是否允许当前URL或者方法的调用，不允许抛出异常
+   * @param authentication
+   * @param object
+   * @param configAttributes
+   * @throws AccessDeniedException
+   * @throws InsufficientAuthenticationException
+   */
+	void decide(Authentication authentication, Object object,
+			Collection<ConfigAttribute> configAttributes) throws AccessDeniedException,
+			InsufficientAuthenticationException;
+
+	boolean supports(ConfigAttribute attribute);
+
+	boolean supports(Class<?> clazz);
+}
+```
+
+实现类：
+
+- AffirmativeBased：一票通过机制
+
+- UnanimousBased：一票否决机制
+
+- ConsensusBased：少数服从多数机制；如果是平局并且至少有一张赞成票，则根据allowIfEqualGrantedDeniedDecisions参数取值来决定，如果未true，则可以访问
+
+### 13.2.5后置处理器
+
+一般只在基于AOP的权限控制中会用到，通过后置处理处理器可以对目标方法的返回值进行权限验证或过滤，接口定义：
+
+```java
+public interface AfterInvocationManager {
+  /**
+   * 
+   * @param authentication
+   * @param object
+   * @param attributes
+   * @param returnedObject 目标方法返回结果
+   * @return
+   * @throws AccessDeniedException
+   */
+	Object decide(Authentication authentication, Object object,
+			Collection<ConfigAttribute> attributes, Object returnedObject)
+			throws AccessDeniedException;
+
+	boolean supports(ConfigAttribute attribute);
+
+	boolean supports(Class<?> clazz);
+}
+```
+AfterInvocationManager只有一个实现类AfterInvocationProviderManager，此类关联多个AfterInvocationProvider，在decide和supports方法中都是遍历
+AfterInvocationProvider并执行它里面对应的方法
+
+### 13.2.6权限元数据
+
+#### 13.2.6.1 ConfigAttribute
+
+在投票器中，受保护对象所需要的权限保存在一个Collection<ConfigAttribute>中，ConfigAttribute用来存储与安全系统相关的配置属性；它有多个实现类，不同的配置会以
+不同的ConfigAttribute对象存储
+
+#### 13.2.6.2 SecurityMetadataSource
+
+SecurityMetadataSource负责提供访问受保护对象所需要的权限
+
+```java
+public interface SecurityMetadataSource extends AopInfrastructureBean {
+	Collection<ConfigAttribute> getAttributes(Object object)
+			throws IllegalArgumentException;
+	Collection<ConfigAttribute> getAllConfigAttributes();
+    //当前的SecurityMetadataSource是否支持受保护的对象
+	boolean supports(Class<?> clazz);
+}
+```
+
+直接继承自SecurityMetadataSource的接口主要有两个：FilterInvocationSecurityMetadataSource（受保护对象是URL）和MethodSecurityMetadataSource（受保护对象是方法）
+
+FilterInvocationSecurityMetadataSource有个子类DefaultFilterInvocationSecurityMetadataSource，该类中有个Map集合：
+```java
+private final Map<RequestMatcher, Collection<ConfigAttribute>> requestMap;
+```
+key是请求匹配器，value是权限集合，与Spring Security如下配置相对应：
+```java
+http
+                .authorizeRequests()
+                .antMatchers("/admin/**").hasRole("admin")
+                .antMatchers("/user/**").hasRole("user")
+```
+
+在开发中URL地址及访问它所需要的权限存在数据库中，可通过实现FilterInvocationSecurityMetadataSource接口完成
+
+### 13.2.7
+
+如图：
+![](asset/CmQUOWCPmgmEb07hAAAAAB-fego450112804.jpg)
+
+Spring Security通过SecurityExpressionOperations接口定义了基本的权限表达式
+
+## 13.3 基于URL地址的权限管理

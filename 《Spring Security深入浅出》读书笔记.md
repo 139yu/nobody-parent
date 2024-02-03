@@ -3920,4 +3920,3 @@ http
 
 Spring Security通过SecurityExpressionOperations接口定义了基本的权限表达式
 
-## 13.3 基于URL地址的权限管理

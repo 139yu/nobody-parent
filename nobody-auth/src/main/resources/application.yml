@@ -12,12 +12,12 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-server:
-  port: 8443
-  ssl:
-    key-store: classpath:nobody.p12
-    key-alias: tomcathttps
-    key-store-password: 123456
+#server:
+#  port: 8443
+#  ssl:
+#    key-store: classpath:nobody.p12
+#    key-alias: tomcathttps
+#    key-store-password: 123456
 
   servlet:
     encoding:

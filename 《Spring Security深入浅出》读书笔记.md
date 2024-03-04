@@ -3913,7 +3913,7 @@ http
 
 在开发中URL地址及访问它所需要的权限存在数据库中，可通过实现FilterInvocationSecurityMetadataSource接口完成
 
-### 13.2.7
+### 13.2.7 权限表达式
 
 如图：
 ![](asset/CmQUOWCPmgmEb07hAAAAAB-fego450112804.jpg)

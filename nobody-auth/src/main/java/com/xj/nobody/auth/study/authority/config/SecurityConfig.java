@@ -1,9 +1,14 @@
 package com.xj.nobody.auth.study.authority.config;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.UrlAuthorizationConfigurer;
 
 @Configuration
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
@@ -30,5 +35,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 //其余请求认证后才能访问
                 .anyRequest().access("isAuthenticated()")
                 .and().formLogin().and().csrf().disable();
+
+    }
+
+    @Bean
+    RoleHierarchy roleHierarchy(){
+        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+        hierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");
+        return hierarchy;
     }
 }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xj.nobody.mapper.MenuMapper">
+
+    <resultMap id="menuResultMap" type="com.xj.nobody.entity.Menu">
+        <id property="id" column="id"/>
+        <result property="pattern" column="pattern"/>
+        <collection property="roles" ofType="com.xj.nobody.entity.Role">
+            <id property="id" column="rid"/>
+            <result property="name" column="name"/>
+            <result property="nameCn" column="name_cn"/>
+        </collection>
+    </resultMap>
+
+    <select id="getAllMenu" resultMap="menuResultMap">
+        SELECT
+            m.id,
+            m.pattern,
+            mr.rid,
+            r.NAME,
+            r.name_cn
+        FROM
+            menu m
+                LEFT JOIN menu_role mr ON m.id = mr.mid
+                LEFT JOIN role r ON r.id = mr.rid
+    </select>
+</mapper>

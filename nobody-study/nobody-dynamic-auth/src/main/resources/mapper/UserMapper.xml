@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xj.nobody.mapper.UserMapper">
+
+    <resultMap id="userMap" type="com.xj.nobody.entity.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="enabled" column="enabled"/>
+        <result property="locked" column="locked"/>
+        <collection property="roles" ofType="com.xj.nobody.entity.Role">
+            <id property="id" column="rid"/>
+            <result property="name" column="name"/>
+            <result property="nameCn" column="name_cn"/>
+        </collection>
+    </resultMap>
+
+    <select id="getUserRoleByUid" resultMap="userMap">
+        select r.id,r.name,r.name_cn from role r
+        left join user_role ur on ur.rid = r.id
+        where ur.uid = #{uid}
+    </select>
+    <select id="loadUserByUsername" resultMap="userMap">
+        SELECT
+            u.id,
+            u.enabled,
+            u.locked,
+            u.`password`,
+            u.username,
+            ur.rid,
+            r.NAME,
+            r.name_cn
+        FROM
+            USER u
+                LEFT JOIN user_role ur ON u.id = ur.uid
+                LEFT JOIN role r ON r.id = ur.rid
+        WHERE
+            u.username = #{username}
+    </select>
+</mapper>

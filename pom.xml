@@ -17,6 +17,7 @@
         <module>nobody-system</module>
         <module>nobody-commons</module>
         <module>nobody-auth</module>
+        <module>nobody-study</module>
     </modules>
     <properties>
         <app.version>1.0-SNAPSHOT</app.version>

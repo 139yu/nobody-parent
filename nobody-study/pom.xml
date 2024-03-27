@@ -14,6 +14,7 @@
     <modules>
         <module>nobody-dynamic-auth</module>
         <module>noobdy-method-auth</module>
+        <module>nobody-security-oauth2</module>
     </modules>
 
     <properties>

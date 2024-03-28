@@ -666,3 +666,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 客户端的请求通过WebClient发起，底层发起HTTP请求的依旧是RestTemplate。有WebClient发起的请求会被DefaultOAuth2AuthorizedClientManager，在
 此类的authorize方法，调用对应的OAuth2AuthorizedClientProvider对请求授权
+
+### 15.4.2获取AccessToken
+
+```java
+@ResponseBody
+public String token(@RegisteredOAuth2AuthorizedClient OAuth2AuthorizedClient auth2AuthorizedClient){
+    OAuth2AccessToken token = auth2AuthorizedClient.getAccessToken();
+    return token.getTokenValue();
+}
+```
+
+以上方式只支持一种授权模式，多种授权模式需要指明registrationId：
+```java
+@ResponseBody
+public String token(@RegisteredOAuth2AuthorizedClient("auth-code") OAuth2AuthorizedClient auth2AuthorizedClient){
+    OAuth2AccessToken token = auth2AuthorizedClient.getAccessToken();
+    return token.getTokenValue();
+}
+```

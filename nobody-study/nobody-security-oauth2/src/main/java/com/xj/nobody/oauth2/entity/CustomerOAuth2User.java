@@ -12,7 +12,6 @@ public class CustomerOAuth2User implements OAuth2User {
     private List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList("ROLE_USER");
     private Map<String, Object> attributes;
     private String id;
-    private String name;
     private String email;
     private String login;
     private String principalName;
@@ -28,7 +27,7 @@ public class CustomerOAuth2User implements OAuth2User {
 
     @Override
     public String getName() {
-        return this.name;
+        return this.login;
     }
     // getter setter
 
@@ -48,9 +47,6 @@ public class CustomerOAuth2User implements OAuth2User {
         this.id = id;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
 
     public String getEmail() {
         return email;
@@ -82,7 +78,6 @@ public class CustomerOAuth2User implements OAuth2User {
                 "authorities=" + authorities +
                 ", attributes=" + attributes +
                 ", id='" + id + '\'' +
-                ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", login='" + login + '\'' +
                 '}';

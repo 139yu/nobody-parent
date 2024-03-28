@@ -1,0 +1,29 @@
+server:
+  port: 9004
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          auth-code:
+            provider: nobody
+            client-id: my_client
+            client-secret: 123
+            authorization-grant-type: authorization_code
+            redirect-uri: http://client.nobody.com:9004/login/oauth2/code/nobody
+            scope: read:msg
+          client-creds:
+            provider: nobody
+            client-id: my_client
+            client-secret: 123
+            authorization-grant-type: client_credentials
+            scope: read:msg
+          password:
+            provider: nobody
+            client-id: my_client
+            client-secret: 123
+            authorization-grant-type: password
+        provider:
+          nobody:
+            authorization-uri: http://auth.nobody.com:9002/oauth/authorize
+            token-uri: http://auth.nobody.com:9002/oauth/token

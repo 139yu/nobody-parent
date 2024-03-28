@@ -646,3 +646,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 配置完成后通过Access Token去加载用户信息时将不再使用DefaultOAuth2UserService，而是使用CustomerUserTypesOAuth2UserService
+
+## 15.4资源服务器与授权服务器
+
+授权服务器模块：`nobody-study/nobody-auth-server`
+
+资源服务器模块：`nobody-study/nobody-resource-server`
+
+客户端应用：`nobody-study/nobody-auth-client`
+
+### 15.4.1原理分析
+
+- 资源服务器 
+
+资源服务器配置了`.oauth2ResourceServer().opaqueToken()`之后，会向Spring Security过滤器链中添加BearerTokenAuthenticationFilter过滤器，
+在该过滤器中完成令牌的解析与校验
+  
+- 客户端
+
+客户端的请求通过WebClient发起，底层发起HTTP请求的依旧是RestTemplate。有WebClient发起的请求会被DefaultOAuth2AuthorizedClientManager，在
+此类的authorize方法，调用对应的OAuth2AuthorizedClientProvider对请求授权

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<div class="panel">
+    <div class="panel-heading">
+        <h3 class="panel-title">请选择一种授权模式</h3>
+    </div>
+    <ul class="list-group">
+        <li class="list-item">
+            <a th:href="@{/authorize?grant_type=authorization_code}">
+                <span>授权码模式</span>
+            </a>
+        </li>
+        <li class="list-item">
+            <a th:href="@{authorize?grant_type=client_credentials}">
+                <span>客户端模式</span>
+            </a>
+        </li>
+        <li class="list-item">
+            <div>
+                <p>密码模式</p>
+                <form th:action="@{/authorize}" method="post">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">用户名</label>
+                            <input type="text" id="username" name="username" value="nobody"/>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">密码</label>
+                            <input type="password" id="password" name="password" value="123">
+                        </div>
+                    </div>
+                    <input type="hidden" name="grant_type" id="gran_type" value="password">
+                    <button type="submit">授权</button>
+                </form>
+            </div>
+        </li>
+    </ul>
+    <div th:if="${msg}">
+        <div th:text="${msg}"></div>
+    </div>
+</div>
+</body>
+</html>

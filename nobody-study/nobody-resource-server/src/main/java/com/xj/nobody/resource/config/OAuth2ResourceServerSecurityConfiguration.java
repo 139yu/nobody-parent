@@ -21,12 +21,16 @@ public class OAuth2ResourceServerSecurityConfiguration extends WebSecurityConfig
     }
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http
+       /* http
                 .authorizeRequests()
                 .anyRequest().authenticated()
                 .and()
                 .oauth2ResourceServer().opaqueToken()
                 .introspectionUri(introspectionUri)
-                .introspectionClientCredentials(clientId, clientSecret);
+                .introspectionClientCredentials(clientId, clientSecret);*/
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and().oauth2ResourceServer().jwt().jwkSetUri("http://auth.nobody.com:9002/oauth2/keys");
     }
 }

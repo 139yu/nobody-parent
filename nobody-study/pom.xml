@@ -18,6 +18,7 @@
         <module>nobody-auth-server</module>
         <module>nobody-resource-server</module>
         <module>nobody-auth-client</module>
+        <module>nobody-auth-server2.0</module>
     </modules>
 
     <properties>

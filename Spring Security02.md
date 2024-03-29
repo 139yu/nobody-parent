@@ -661,6 +661,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 资源服务器配置了`.oauth2ResourceServer().opaqueToken()`之后，会向Spring Security过滤器链中添加BearerTokenAuthenticationFilter过滤器，
 在该过滤器中完成令牌的解析与校验
+
+opaqueToken：不透明令牌
   
 - 客户端
 
@@ -683,5 +685,204 @@ public String token(@RegisteredOAuth2AuthorizedClient OAuth2AuthorizedClient aut
 public String token(@RegisteredOAuth2AuthorizedClient("auth-code") OAuth2AuthorizedClient auth2AuthorizedClient){
     OAuth2AccessToken token = auth2AuthorizedClient.getAccessToken();
     return token.getTokenValue();
+}
+```
+
+## 15.5使用Redis
+
+使用Redis存储token，只需要将InMemoryTokenStore换成RedisTokenStore即可。前置条件是导入redis依赖，并配置redis
+
+## 15.6客户端信息存入数据库
+
+Spring Security客户端信息是通过ClientDetailsService加载的，如果需要将客户端信息存储在数据库，可使用它的实现类JdbcClientDetailsService，
+表字段都在此类中有定义。
+
+## 15.7使用JWT
+
+### 15.7.1JWT数据格式
+
+JWT包含三部分数据：Header、Payload、Signature
+
+- Header
+
+Header有两部分信息：
+
+1. 声明类型，这里是JWT
+
+2. 加密算法，自定义
+
+对头部进行Base64Url编码（可解码），得到第一部分数据
+
+- Payload
+
+荷载，就是有效数据，官方文档给出了七个示例：
+
+1. iss（issuer）：签发者
+
+2. exp（expiration time）：过期时间
+
+3. sub（subject）：主题
+
+4. aud（audience）：受众
+
+5. nbf（not before）：生效时间
+
+6. iat（issued at）：签发时间
+
+7. jti（jwt id）：编号
+
+这部分也采用Base64Url编码，得到第二部分数据
+
+- Signature
+
+签名，是整个数据的认证信息。一般根据前两步的数据，在加上服务的密钥（保存在服务端）。这个密钥通过Header中配置的加密算法生成，用于验证数据完整性和可靠性
+
+### OAuth2使用JWT
+
+使用非对称（RSA）来处理JWT，使用java自带的keytool工具来生成jks证书文件，该根据在jdk的bin目录下：
+```shell
+keytool -genkey -alias jwt -keyalg RAS -keystore jwt.jks
+```
+生成的文件在执行命令的目录，将jwt.jks文件拷贝到resources目录下（授权服务）
+
+配置密钥：
+```java
+public class KeyConfig {
+    private static final String STORE_FILE = "jwt.jks";
+    private static final String STORE_PASSWORD = "nobody";
+    private static final String KEY_ALIAS = "jwt";
+    private static KeyStoreKeyFactory KEY_STORE_KEY_FACTORY =
+            new KeyStoreKeyFactory(new ClassPathResource(STORE_FILE),STORE_PASSWORD.toCharArray());
+
+    static RSAPublicKey getVerifierKey() {
+        return (RSAPublicKey) getKeyPair().getPublic();
+    }
+
+    static RSAPrivateKey getSingerKey(){
+        return (RSAPrivateKey) getKeyPair().getPrivate();
+    }
+
+    private static KeyPair getKeyPair(){
+        return KEY_STORE_KEY_FACTORY.getKeyPair(KEY_ALIAS);
+    }
+}
+```
+配置token：
+```java
+@Configuration
+public class AccessTokenConfig {
+    @Bean
+    TokenStore tokenStore() {
+        return new JwtTokenStore(jwtAccessTokenConverter());
+    }
+    //令牌生成工具
+    @Bean
+    public JwtAccessTokenConverter jwtAccessTokenConverter(){
+        RsaSigner signer = new RsaSigner(KeyConfig.getSingerKey());
+        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+        converter.setSigner(signer);
+        converter.setVerifier(new RsaVerifier(KeyConfig.getVerifierKey()));
+        return converter;
+    }
+    @Bean
+    public JWKSet jwkSet() {
+        RSAKey.Builder builder = new RSAKey
+                .Builder(KeyConfig.getVerifierKey())
+                .keyUse(KeyUse.SIGNATURE)
+                .algorithm(JWSAlgorithm.RS256)
+                ;
+        return new JWKSet(builder.build());
+    }
+}
+```
+配置AuthorizationServer：
+```java
+@Configuration
+@EnableAuthorizationServer
+public class AuthorizationServer extends AuthorizationServerConfigurerAdapter {
+    @Autowired
+    TokenStore tokenStore;
+    @Autowired
+    private ClientDetailsService clientDetailsService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtAccessTokenConverter jwtAccessTokenConverter;
+    @Bean
+    public AuthorizationServerTokenServices tokenServices() {
+        DefaultTokenServices tokenServices = new DefaultTokenServices();
+        tokenServices.setSupportRefreshToken(true);
+        tokenServices.setClientDetailsService(clientDetailsService);
+        tokenServices.setTokenStore(tokenStore);
+        TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+        tokenEnhancerChain.setTokenEnhancers(Arrays.asList(jwtAccessTokenConverter));
+        tokenServices.setTokenEnhancer(tokenEnhancerChain);
+        tokenServices.setAccessTokenValiditySeconds(60 * 60 * 2);
+        tokenServices.setRefreshTokenValiditySeconds(60 * 60 * 24);
+        return tokenServices;
+    }
+
+    @Override
+    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
+        security.checkTokenAccess("permitAll()")
+                .allowFormAuthenticationForClients();
+    }
+
+    @Override
+    public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+        clients.inMemory()
+                .withClient("my_client")
+                .secret(passwordEncoder.encode("123"))
+                .authorizedGrantTypes("password", "refresh_token",
+                        "authorization_code", "client_credentials", "implicit")
+                .scopes("read:user","read:msg")
+                .redirectUris("http://client.nobody.com:9004/login/oauth2/code/nobody");
+    }
+
+    @Override
+    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+        endpoints.authenticationManager(authenticationManager())
+                .authorizationCodeServices(authorizationCodeServices())
+                .tokenServices(tokenServices());
+    }
+
+    @Bean
+    AuthorizationCodeServices authorizationCodeServices(){
+        return new InMemoryAuthorizationCodeServices();
+    }
+
+    AuthenticationManager authenticationManager(){
+        return new OAuth2AuthenticationManager();
+    }
+}
+```
+资源服务器需要从授权服务器获取公钥，所以要提供一个获取公钥的接口：
+```java
+@GetMapping("oauth2/keys")
+public String keys(){
+    return jwkSet.toString();
+}
+```
+修改资源服务器配置：
+```java
+@Configuration
+public class OAuth2ResourceServerSecurityConfiguration extends WebSecurityConfigurerAdapter {
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-uri}")
+    String introspectionUri;
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-client-id}")
+    String clientId;
+    @Value("${spring.security.oauth2.resourceserver.opaque.introspection-client-secret}")
+    String clientSecret;
+    @PostConstruct
+    public void init(){
+        System.out.println(1234);
+    }
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and().oauth2ResourceServer().jwt().jwkSetUri("http://auth.nobody.com:9002/oauth2/keys");
+    }
 }
 ```

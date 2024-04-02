@@ -1,4 +1,4 @@
-package com.xj.nobody;
+package com.xj.nobody.admin;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,10 +6,8 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-public class NobodyAuthApplication {
+public class NobodyAdminApplication {
     public static void main(String[] args) {
-        SpringApplication.run(NobodyAuthApplication.class);
+        SpringApplication.run(NobodyAdminApplication.class, args);
     }
-
-
 }

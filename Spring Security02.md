@@ -109,7 +109,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .withUser("admin").roles("ADMIN").password("{noop}123")
                 .and().withUser("test").authorities("test").password("{noop}123")
                 .and().withUser("user").roles("USER").password("{noop}123");
-    }[ja-netfilter.jar](..%2F..%2Fja-netfilter%2Fja-netfilter.jar)
+    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {

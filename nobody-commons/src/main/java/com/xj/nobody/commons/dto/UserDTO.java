@@ -6,10 +6,10 @@ import java.util.List;
 
 @Data
 public class UserDTO {
-    private Long id;
+    private Integer id;
     private String username;
     private String password;
     private Integer status;
     //权限字符串
-    private List<String> authorities;
+    private List<RoleDTO> roleList;
 }

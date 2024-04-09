@@ -30,7 +30,7 @@ public class SysRoleServiceImpl implements SysRoleService {
     @Override
     public void loadRoleMenuCache() {
         List<SysRole> listAll = listWithMenu(new SysRole());
-        Map<String,List<String>> roleMenuPathMap = new HashMap<>();
+        Map<String, List<String>> roleMenuPathMap = new HashMap<>();
         for (SysRole item : listAll) {
             String roleKey = item.getRoleKey();
             List<String> paths = new ArrayList<>();
@@ -39,7 +39,7 @@ public class SysRoleServiceImpl implements SysRoleService {
                     paths.add(sysMenu.getPath());
                 }
             }
-            roleMenuPathMap.put(roleKey,paths);
+            roleMenuPathMap.put(roleKey, paths);
         }
     }
 

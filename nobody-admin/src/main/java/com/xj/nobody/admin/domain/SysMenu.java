@@ -19,7 +19,7 @@ public class SysMenu extends BaseEntity implements Serializable {
     /**
      * 父级ID
      */
-    private Long parentId;
+    private Integer parentId;
 
     /**
      * 菜单名称
@@ -55,10 +55,4 @@ public class SysMenu extends BaseEntity implements Serializable {
      * 前端图标
      */
     private String icon;
-
-
-    /**
-     * 权限字符串
-     */
-    private String perms;
 }

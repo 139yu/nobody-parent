@@ -30,6 +30,8 @@ public class Oauth2ServerConfig extends AuthorizationServerConfigurerAdapter {
     private AuthenticationManager authenticationManager;
     @Autowired
     private JwtTokenEnhancer tokenEnhancer;
+    @Autowired
+    private JwtAccessTokenConverter accessTokenConverter;
     @Override
     public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
         //允许表单认证
@@ -56,20 +58,15 @@ public class Oauth2ServerConfig extends AuthorizationServerConfigurerAdapter {
         TokenEnhancerChain enhancerChain = new TokenEnhancerChain();
         List<TokenEnhancer> delegates = new ArrayList<>();
         delegates.add(tokenEnhancer);
-        delegates.add(accessTokenConverter());
+        delegates.add(accessTokenConverter);
         enhancerChain.setTokenEnhancers(delegates);
         endpoints.authenticationManager(authenticationManager)
                 .userDetailsService(null)
-                .accessTokenConverter(accessTokenConverter())
+                .accessTokenConverter(accessTokenConverter)
                 .tokenEnhancer(enhancerChain);
     }
 
-    @Bean
-    public JwtAccessTokenConverter accessTokenConverter(){
-        JwtAccessTokenConverter accessTokenConverter = new JwtAccessTokenConverter();
-        accessTokenConverter.setKeyPair(keyPair());
-        return accessTokenConverter;
-    }
+
 
     @Bean
     public KeyPair keyPair(){

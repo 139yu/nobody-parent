@@ -19,6 +19,7 @@
         <module>nobody-resource-server</module>
         <module>nobody-auth-client</module>
         <module>nobody-auth-server2.0</module>
+        <module>nobody-servlet-demo</module>
     </modules>
 
     <properties>

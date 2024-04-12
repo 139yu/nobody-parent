@@ -1,7 +1,5 @@
 package com.xj.nobody.auth.domain;
 
-import com.xj.nobody.commons.dto.MenuDTO;
-import com.xj.nobody.commons.dto.RoleDTO;
 import com.xj.nobody.commons.dto.UserDTO;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,14 +18,17 @@ public class SecurityUser implements UserDetails {
     private Collection<SimpleGrantedAuthority> authorities;
 
     public SecurityUser(UserDTO userDTO) {
-        List<RoleDTO> roleList = userDTO.getRoleList();
+        id = userDTO.getId();
+        username = userDTO.getUsername();
+        password = userDTO.getPassword();
         authorities = new ArrayList<>();
-        for (RoleDTO roleDTO : roleList) {
-            List<MenuDTO> menuList = roleDTO.getMenuList();
-            for (MenuDTO menuDTO : menuList) {
-                authorities.add(new SimpleGrantedAuthority(menuDTO.getPerms()));
-            }
+        enabled = userDTO.getEnable() == 1;
+        List<String> roleList = userDTO.getRoleList();
+        for (String roleKey : roleList) {
+            authorities.add(new SimpleGrantedAuthority(roleKey));
         }
+
+
     }
 
     @Override

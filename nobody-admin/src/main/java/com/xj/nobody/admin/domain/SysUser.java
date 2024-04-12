@@ -44,7 +44,7 @@ public class SysUser extends BaseEntity implements Serializable {
      */
     private String email;
 
-    private Integer status;
+    private Integer enable;
 
     @TableField(exist = false)
     private List<SysRole> roleList;

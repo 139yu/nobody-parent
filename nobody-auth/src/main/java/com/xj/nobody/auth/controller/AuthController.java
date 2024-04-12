@@ -1,7 +1,7 @@
 package com.xj.nobody.auth.controller;
 
 import com.xj.nobody.commons.api.CommonResult;
-import com.xj.nobody.commons.constants.Constants;
+import com.xj.nobody.commons.constants.AuthConstants;
 import com.xj.nobody.commons.dto.OAuth2TokenDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -58,7 +58,7 @@ public class AuthController {
                 .token(token.getValue())
                 .expiresIn(token.getExpiresIn())
                 .refreshToken(token.getRefreshToken().getValue())
-                .tokenHead(Constants.AUTH_TOKEN_PREFIX).build();
+                .tokenHead(AuthConstants.AUTH_TOKEN_PREFIX).build();
         return CommonResult.success(tokenDto);
     }
 }

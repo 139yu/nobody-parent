@@ -11,7 +11,7 @@ public class KeyConfig {
     private static final String STORE_FILE = "jwt.jks";
     private static final String STORE_PASSWORD = "nobody";
     private static final String KEY_ALIAS = "jwt";
-    private static KeyStoreKeyFactory KEY_STORE_KEY_FACTORY =
+    private static final KeyStoreKeyFactory KEY_STORE_KEY_FACTORY =
             new KeyStoreKeyFactory(new ClassPathResource(STORE_FILE), STORE_PASSWORD.toCharArray());
     static RSAPublicKey getVerifierKey() {
         return (RSAPublicKey) getKeyPair().getPublic();

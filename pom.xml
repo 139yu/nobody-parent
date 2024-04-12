@@ -17,6 +17,7 @@
         <module>nobody-commons</module>
         <module>nobody-auth</module>
         <module>nobody-admin</module>
+        <module>nobody-gateway</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -35,7 +36,17 @@
         <spring-cloud.version>2021.0.3</spring-cloud.version>
         <spring-cloud-starter-oauth2.version>2.2.5.RELEASE</spring-cloud-starter-oauth2.version>
     </properties>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -47,17 +58,21 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>
                 <version>${mysql.connector}</version>
             </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
-                <artifactId>hutool-bom</artifactId>
+                <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
-                <type>pom</type>
-                <!-- 注意这里是import -->
-                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
@@ -74,13 +89,7 @@
                 <artifactId>mybatis-plus-boot-starter</artifactId>
                 <version>${mybatis.plus.start}</version>
             </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-                <version>${spring-cloud-alibaba.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>

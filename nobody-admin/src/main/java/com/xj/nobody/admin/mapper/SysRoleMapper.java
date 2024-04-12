@@ -6,5 +6,8 @@ import com.xj.nobody.admin.domain.SysRole;
 import java.util.List;
 
 public interface SysRoleMapper extends BaseMapper<SysRole> {
-    List<SysRole> listWithMenu(SysRole params);
+
+    List<SysRole> list(SysRole params);
+
+    List<SysRole> listByUserId(Integer userId);
 }

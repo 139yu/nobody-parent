@@ -14,6 +14,6 @@ public class ResourceLoadHolder {
 
     @PostConstruct
     public void init(){
-        roleService.loadRoleMenuCache();
+        roleService.loadRoleResourceCache();
     }
 }

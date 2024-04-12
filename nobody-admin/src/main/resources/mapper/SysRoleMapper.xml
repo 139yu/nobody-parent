@@ -2,63 +2,46 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xj.nobody.admin.mapper.SysRoleMapper">
 
-    <resultMap id="roleMap" type="com.xj.nobody.admin.domain.SysRole">
-        <id column="id" property="id"/>
-        <result property="name" column="name"/>
-        <result property="roleKey" column="role_key"/>
-        <result property="description" column="description"/>
-        <result property="sort" column="sort"/>
-        <result property="status" column="status"/>
-        <result property="createTime" column="create_time"/>
-        <collection property="menuList" ofType="com.xj.nobody.admin.domain.SysMenu">
-            <id column="menu_id" property="id"/>
-            <result property="title" column="title"/>
-            <result property="path" column="path"/>
-            <result property="icon" column="icon"/>
-            <result property="sort" column="sort"/>
-            <result property="showStatus" column="show_status"/>
-            <result property="perms" column="perms"/>
-            <result property="menuType" column="menu_type"/>
-            <result property="level" column="level"/>
-            <result property="parentId" column="parent_id"/>
-            <result property="createTime" column="create_time"/>
-        </collection>
-    </resultMap>
-    <select id="listWithMenu" resultMap="roleMap">
-        SELECT
+    <select id="list" resultType="com.xj.nobody.admin.domain.SysRole">
+        select
             r.id,
             r.name,
             r.role_key,
             r.description,
-            r.sort,
             r.status,
             r.create_time,
-            m.id menu_id,
-            m.title,
-            m.path,
-            m.icon,
-            m.sort,
-            m.show_status,
-            m.perms,
-            m.menu_type,
-            m.level,
-            m.parent_id,
-            m.create_time
-        FROM
+            r.update_time
+        from
             sys_role r
-            LEFT JOIN sys_role_menu rm ON r.id = rm.role_id
-            LEFT JOIN sys_menu m ON m.id = rm.menu_id
         <where>
             <if test="name != null and name != ''">
-                AND r.name LIKE concat(#{name},'%')
+                and r.name like concat('%',#{name},'%')
             </if>
             <if test="roleKey != null and roleKey != ''">
-                AND r.role_key LIKE concat(#{roleKey},'%')
+                and r.role_key like concat('%',#{roleKey},'%')
+            </if>
+            <if test="description != null and description != ''">
+                and r.description like concat('%',#{description},'%')
+            </if>
+            <if test="status != null">
+                and r.status = #{status}
             </if>
         </where>
-        <if test="sorted != null and sorted != '' and orderBy != null and orderBy != ''">
-            ORDER BY ${orderBy} ${sorted}
-        </if>
+    </select>
+    <select id="listByUserId" resultType="com.xj.nobody.admin.domain.SysRole">
+        select
+            r.id,
+            r.name,
+            r.role_key,
+            r.description,
+            r.status,
+            r.create_time,
+            r.update_time
+        from
+            sys_role r
+        inner join sys_user_role ur on r.id = ur.role_id
+        where
+            ur.user_id = #{userId}
     </select>
 
 

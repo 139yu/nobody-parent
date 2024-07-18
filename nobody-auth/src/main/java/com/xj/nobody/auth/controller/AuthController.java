@@ -7,10 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
@@ -23,6 +20,10 @@ public class AuthController {
     @Autowired
     private TokenEndpoint tokenEndpoint;
 
+    @PostMapping("test")
+    public String test(){
+        return "test";
+    }
     /**
      * 获取token
      *
@@ -40,7 +41,7 @@ public class AuthController {
             @RequestParam("grant_type") String grantType,
             @RequestParam("client_id") String clientId,
             @RequestParam("client_secret") String client_secret,
-            @RequestParam("refresh_token") String refreshToken,
+            @RequestParam(value = "refresh_token", required = false) String refreshToken,
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "password", required = false) String password
     ) throws HttpRequestMethodNotSupportedException {

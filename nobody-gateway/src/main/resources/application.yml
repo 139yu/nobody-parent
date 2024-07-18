@@ -1,8 +1,38 @@
 server:
   port: 9000
 spring:
-  application:
-    name: nobody-gateway
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          jwk-set-uri: 'http://localhost:9000/nobody-auth/rsa/publicKey' #公钥地址
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true #使用小写服务名
+      routes:
+        - id: nobody-auth
+          uri: lb://nobody-auth
+          predicates:
+            - Path=/nobody-auth/**
+          filters:
+            - StripPrefix=1
+        - id: nobody-admin
+          uri: lb://nobody-admin
+          predicates:
+            - Path=/nobody-admin/**
+          filters:
+            - StripPrefix=1
+
 secure:
   ignore:
-    - /test/**
+    urls:
+      - /nobody-auth/rsa/publicKey #公钥接口
+      - /nobody-admin/admin/login #登录接口
+      - /nobody-auth/oauth/test #测试
+      - /nobody-auth/oauth/token #获取token

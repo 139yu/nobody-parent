@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserDetailsService {
             throw new LockedException(AuthConstants.ACCOUNT_LOCKED);
         }else if(!user.isAccountNonExpired()){
             throw new AccountExpiredException(AuthConstants.ACCOUNT_EXPIRED);
-        }else if(user.isCredentialsNonExpired()){
+        }else if(!user.isCredentialsNonExpired()){
             throw new AccountExpiredException(AuthConstants.ACCOUNT_CREDENTIAL_EXPIRED);
         }
         return user;

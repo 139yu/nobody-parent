@@ -4,13 +4,24 @@ spring:
   application:
     name: nobody-admin
   datasource:
-    url: jdbc:mysql://localhost:3306/demo01?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    url: jdbc:mysql://localhost:3306/nobody?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
     username: root
     password: root
   redis:
     host: localhost
-    port: 6378
-    timeout: 3000
+    port: 6379
+    password:
 mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: com.weshare.nobody.domain,com.weshare.nobody.entity
+feign:
+  okhttp:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic

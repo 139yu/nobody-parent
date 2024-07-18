@@ -8,6 +8,7 @@ import com.xj.nobody.commons.domain.BaseEntity;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -40,6 +41,7 @@ public class SysRole extends BaseEntity implements Serializable {
      * 启用状态[0]禁用 [1]启用
      */
     private Integer status;
+    private Date updateTime;
     @TableField(exist = false)
     private List<SysMenu> menuList;
 

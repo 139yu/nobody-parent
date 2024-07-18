@@ -55,7 +55,7 @@ public class SysRoleServiceImpl implements SysRoleService {
             roleResourceMap.put("/" + applicationName + resource.getUrl(),collect);
         }
         redisService.del(RedisKey.ROLE_RESOURCE);
-        redisService.set(RedisKey.ROLE_RESOURCE,roleResourceMap);
+        redisService.hSetAll(RedisKey.ROLE_RESOURCE,roleResourceMap);
     }
 
 }

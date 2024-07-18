@@ -1,5 +1,8 @@
 package com.xj.nobody.commons.api;
 
+import lombok.Data;
+
+@Data
 public class CommonResult<T> {
     private Integer code;
     private String msg;

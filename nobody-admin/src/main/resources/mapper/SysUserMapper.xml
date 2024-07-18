@@ -3,14 +3,12 @@
 <mapper namespace="com.xj.nobody.admin.mapper.SysUserMapper">
 
 
-
-
     <select id="loadUserByUsername" resultType="com.xj.nobody.commons.dto.UserDTO">
         SELECT
             u.id,
             u.username,
             u.`password`,
-            u.enable
+            u.status as enable
         FROM
             sys_user u
         WHERE

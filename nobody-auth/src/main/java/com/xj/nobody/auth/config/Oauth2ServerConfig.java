@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
@@ -21,6 +22,9 @@ import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 授权配置
+ */
 @Configuration
 @EnableAuthorizationServer
 public class Oauth2ServerConfig extends AuthorizationServerConfigurerAdapter {
@@ -31,7 +35,7 @@ public class Oauth2ServerConfig extends AuthorizationServerConfigurerAdapter {
     @Autowired
     private JwtTokenEnhancer tokenEnhancer;
     @Autowired
-    private JwtAccessTokenConverter accessTokenConverter;
+    private UserDetailsService userDetailsService;
     @Override
     public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
         //允许表单认证
@@ -58,15 +62,20 @@ public class Oauth2ServerConfig extends AuthorizationServerConfigurerAdapter {
         TokenEnhancerChain enhancerChain = new TokenEnhancerChain();
         List<TokenEnhancer> delegates = new ArrayList<>();
         delegates.add(tokenEnhancer);
-        delegates.add(accessTokenConverter);
+        delegates.add(accessTokenConverter());
         enhancerChain.setTokenEnhancers(delegates);
         endpoints.authenticationManager(authenticationManager)
-                .userDetailsService(null)
-                .accessTokenConverter(accessTokenConverter)
+                .userDetailsService(userDetailsService)
+                .accessTokenConverter(accessTokenConverter())
                 .tokenEnhancer(enhancerChain);
     }
 
-
+    @Bean
+    public JwtAccessTokenConverter accessTokenConverter(){
+        JwtAccessTokenConverter jwtAccessTokenConverter = new JwtAccessTokenConverter();
+        jwtAccessTokenConverter.setKeyPair(keyPair());
+        return jwtAccessTokenConverter;
+    }
 
     @Bean
     public KeyPair keyPair(){

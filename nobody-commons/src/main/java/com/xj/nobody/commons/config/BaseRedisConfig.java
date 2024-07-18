@@ -24,7 +24,6 @@ import java.time.Duration;
 /**
  * 配置redisTemplate：设置序列化方式
  */
-@Configuration
 public class BaseRedisConfig {
 
     @Bean

@@ -1,8 +1,21 @@
 server:
-  port: 9000
+  port: 9002
 spring:
-  application:
-    name: nobody-auth
-  cloud:
-    nacos:
-      server-addr: 127.0.0.1:8848
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+feign:
+  okhttp:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        logLevel: basic

@@ -10,6 +10,7 @@ public class UserDTO {
     private String username;
     private String password;
     private Integer enable;
+    private String clientId;
     //权限字符串
     private List<String> roleList;
 }

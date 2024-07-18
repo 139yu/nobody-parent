@@ -4,7 +4,6 @@ import com.xj.nobody.auth.domain.SecurityUser;
 import com.xj.nobody.auth.feign.AdminFeignClient;
 import com.xj.nobody.commons.constants.AuthConstants;
 import com.xj.nobody.commons.dto.UserDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -13,9 +12,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+
 @Service
 public class UserServiceImpl implements UserDetailsService {
-    @Autowired
+    @Resource
     private AdminFeignClient adminFeignClient;
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

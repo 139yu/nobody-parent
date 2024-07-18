@@ -15,7 +15,7 @@ public class SysUserMapperTest {
 
     @Test
     public void selectUserByUsername() {
-        UserDTO nobody = sysUserMapper.loadUserWithPerms("nobody");
+        UserDTO nobody = sysUserMapper.loadUserByUsername("nobody");
         System.out.println(nobody);
     }
 }

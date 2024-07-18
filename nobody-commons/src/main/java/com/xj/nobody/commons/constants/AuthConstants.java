@@ -21,4 +21,8 @@ public interface AuthConstants {
     String ACCOUNT_EXPIRED = "账号已过期";
 
     String ACCOUNT_CREDENTIAL_EXPIRED = "登录凭证已过期";
+
+    String ADMIN_CLIENT_ID = "nobody-admin";
+    String DEFAULT_GRANT_TYPE = "password";
+    String CLIENT_SECRET = "nobody";
 }

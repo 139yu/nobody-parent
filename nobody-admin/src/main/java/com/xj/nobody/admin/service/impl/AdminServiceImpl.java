@@ -2,6 +2,7 @@ package com.xj.nobody.admin.service.impl;
 
 import com.xj.nobody.admin.feign.AuthFeignClient;
 import com.xj.nobody.admin.service.AdminService;
+import com.xj.nobody.admin.vo.FullUserInfoVo;
 import com.xj.nobody.commons.api.CommonResult;
 import com.xj.nobody.commons.constants.AuthConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,4 +25,5 @@ public class AdminServiceImpl implements AdminService {
         params.put("client_secret",AuthConstants.CLIENT_SECRET);
         return authFeignClient.postAccessToken(params);
     }
+
 }

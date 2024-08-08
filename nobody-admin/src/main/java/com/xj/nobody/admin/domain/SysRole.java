@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@TableName(value = "sys_role",excludeProperty = {"sort"})
+@TableName(value = "sys_role",excludeProperty = {"sorted","createTime"})
 public class SysRole extends BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -31,7 +31,10 @@ public class SysRole extends BaseEntity implements Serializable {
      * 描述
      */
     private String description;
-
+    /**
+     * 角色层级，只可查看/修改层级比自己大的角色
+     */
+    private Integer roleLevel;
     /**
      * 排序
      */
@@ -41,7 +44,6 @@ public class SysRole extends BaseEntity implements Serializable {
      * 启用状态[0]禁用 [1]启用
      */
     private Integer status;
-    private Date updateTime;
     @TableField(exist = false)
     private List<SysMenu> menuList;
 

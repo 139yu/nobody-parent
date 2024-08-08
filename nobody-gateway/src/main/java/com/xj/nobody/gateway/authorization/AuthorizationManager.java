@@ -72,7 +72,7 @@ public class AuthorizationManager implements ReactiveAuthorizationManager<Author
         }
         Map<Object, Object> resourceRoleMap = redisTemplate.opsForHash().entries(RedisKey.ROLE_RESOURCE);
         Iterator<Object> iterator = resourceRoleMap.keySet().iterator();
-        //保存访问当前请求所需要的资源
+        //保存访问当前请求所需要的角色
         List<String> authorizes = new ArrayList<>();
         while (iterator.hasNext()){
             String pattern = (String) iterator.next();

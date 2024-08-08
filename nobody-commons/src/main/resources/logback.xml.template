@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration>
+
+    <!--
+            %-10level 日志级别（设置10个字符，字符不够空格补齐，左对齐）
+            %d{yyyy-MM-dd HH:mm:ss.SSS} 日期
+            %c 当前类全限定名
+            %M 当前执行日志的方法
+            %L 行号
+            %thread 线程名称
+            %m或者%msg 信息
+            %n 换行
+            -->
+    <property name="pattern" value="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} %c %M %thread %L：%m%n"/>
+    <property name="logDir" value="F:\\CODE\\JAVA\\LogStudyV2\\LogStudy\\LOGBACK_StudyV2\\log"/>
+
+    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <target>
+            System.err
+        </target>
+
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+    </appender>
+
+    <!--    过滤器-->
+    <appender name="consoleFilterAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <target>
+            System.err
+        </target>
+
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+
+        <!--        配置过滤器(等于配置的级别才会输出)-->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!--            设置日志的输出级别-->
+            <level>INFO</level>
+            <!--            高于level中设置的级别，则打印日志-->
+            <onMatch>ACCEPT</onMatch>
+            <!--            低于level中设置的级别，则不打印-->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+
+<!--        &lt;!&ndash;        配置临界值过滤器(输出大于等于level的日志)&ndash;&gt;-->
+<!--        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">-->
+<!--            &lt;!&ndash;            设置日志的输出级别&ndash;&gt;-->
+<!--            <level>INFO</level>-->
+<!--        </filter>-->
+    </appender>
+
+    <appender name="fileAppender" class="ch.qos.logback.core.FileAppender">
+        <file>${logDir}\mylog.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="rollAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+
+        <file>${logDir}\roll_logback.log</file>
+
+        <!--        指定拆分规则-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logDir}/roll.%d{yyyy-MM-dd}.log%i.gz</fileNamePattern>
+            <maxFileSize>1KB</maxFileSize>
+        </rollingPolicy>
+
+    </appender>
+
+<!--    html格式-->
+    <appender name="htmlAppender" class="ch.qos.logback.core.FileAppender">
+        <file>${logDir}\myHtmllog.html</file>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.html.HTMLLayout">
+                <pattern>${pattern}</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <root level="ALL">
+        <appender-ref ref="consoleFilterAppender"/>
+    </root>
+
+</configuration>

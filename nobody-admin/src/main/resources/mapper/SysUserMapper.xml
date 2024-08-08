@@ -5,13 +5,36 @@
 
     <select id="loadUserByUsername" resultType="com.xj.nobody.commons.dto.UserDTO">
         SELECT
-            u.id,
+            u.id as user_id,
             u.username,
             u.`password`,
-            u.status as enable
+            u.enable
         FROM
             sys_user u
         WHERE
             u.username = #{username}
+    </select>
+    <select id="list" resultType="com.xj.nobody.admin.vo.UserItemVo"
+            parameterType="com.xj.nobody.admin.domain.SysUser">
+        SELECT
+            id,
+            username,
+            nickname,
+            phone,
+            avatar,
+            login_time,
+            create_time,
+            email,
+            enable
+        FROM
+            sys_user
+        <where>
+            <if test="id != null">and id = #{id}</if>
+            <if test="username != null and username != ''">and username like concat(#{username},'%')</if>
+            <if test="nickname != null and nickname != ''">and nickname like concat(#{nickname},'%')</if>
+            <if test="phone != null and phone != ''">and phone like concat(#{phone},'%')</if>
+            <if test="email != null and email != ''">and email like concat(#{email},'%')</if>
+            <if test="enable != null">and enable = #{enable}</if>
+        </where>
     </select>
 </mapper>

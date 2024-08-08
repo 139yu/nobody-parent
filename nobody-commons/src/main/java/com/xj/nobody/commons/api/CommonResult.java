@@ -16,7 +16,9 @@ public class CommonResult<T> {
     public static  <T> CommonResult<T> success(T data) {
         return new CommonResult<T>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), data);
     }
-
+    public static <T> CommonResult<T> success(){
+        return success(null);
+    }
     public static <T> CommonResult<T> failed(Integer code,String msg) {
         return new CommonResult<T>(code, msg, null);
     }
@@ -25,12 +27,15 @@ public class CommonResult<T> {
         return failed(ResultCode.FAILED.getCode(),ResultCode.FAILED.getMessage());
     }
 
+    public static <T> CommonResult<T> failed(String message) {
+        return failed(ResultCode.FAILED.getCode(),message);
+    }
     public static <T> CommonResult<T> validateFailed() {
         return failed(ResultCode.VALIDATE_FAILED.getCode(),ResultCode.VALIDATE_FAILED.getMessage());
     }
 
-    public static <T> CommonResult<T> failed(ResultCode resultCode) {
-        return failed(resultCode.getCode(),resultCode.getMessage());
+    public static <T> CommonResult<T> failed(IErrorCode errorCode) {
+        return failed(errorCode.getCode(),errorCode.getMessage());
     }
     public static <T> CommonResult<T> unauthorized(T data) {
         return new CommonResult<T>(ResultCode.UNAUTHORIZED.getCode(), ResultCode.UNAUTHORIZED.getMessage(), data);

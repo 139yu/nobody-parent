@@ -8,9 +8,8 @@
             r.name,
             r.role_key,
             r.description,
-            r.status,
-            r.create_time,
-            r.update_time
+            r.status
+
         from
             sys_role r
         <where>
@@ -34,9 +33,7 @@
             r.name,
             r.role_key,
             r.description,
-            r.status,
-            r.create_time,
-            r.update_time
+            r.status
         from
             sys_role r
         inner join sys_user_role ur on r.id = ur.role_id

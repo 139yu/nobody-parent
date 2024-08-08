@@ -18,7 +18,7 @@ public class SecurityUser implements UserDetails {
     private Collection<SimpleGrantedAuthority> authorities;
 
     public SecurityUser(UserDTO userDTO) {
-        id = userDTO.getId();
+        id = userDTO.getUserId();
         username = userDTO.getUsername();
         password = userDTO.getPassword();
         authorities = new ArrayList<>();

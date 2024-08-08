@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xj.nobody.admin.mapper.SysResourceCategoryMapper">
+
+    <resultMap id="categoryMap" type="com.xj.nobody.admin.domain.SysResourceCategory">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="sort" property="sort"/>
+        <collection property="resources"  column="id" ofType="com.xj.nobody.admin.domain.SysResource">
+            <id column="resource_id" property="id"/>
+            <result column="resource_name" property="name"/>
+            <result column="url" property="url"/>
+            <result column="description" property="description"/>
+            <result column="category_id" property="categoryId"/>
+        </collection>
+    </resultMap>
+
+    <select id="listWithItem" resultMap="categoryMap">
+        SELECT
+            rc.id,
+            rc.`name`,
+            rc.sort,
+            r.id resource_id,
+            r.NAME resrouce_name,
+            r.url,
+            r.category_id,
+            r.description
+        FROM
+            sys_resource_category rc
+                LEFT JOIN sys_resource r ON rc.id = r.category_id
+        order by rc.sort asc
+    </select>
+    <select id="list" resultType="com.xj.nobody.admin.domain.SysResourceCategory"
+            parameterType="com.xj.nobody.admin.domain.SysResourceCategory">
+        select
+            id,
+            name,
+            sort
+        from
+            sys_resource_category
+        <where>
+            <if test="name != null and name != ''">
+                and name like concat(#{name},'%')
+            </if>
+        </where>
+        order by sort asc
+    </select>
+    <select id="unique" resultType="java.lang.Integer"
+            parameterType="com.xj.nobody.admin.domain.SysResourceCategory">
+        select count(1) from sys_resource_category
+        <where>
+            id != #{id}
+            <if test="name != null and name != ''">
+                and name = #{name}
+            </if>
+        </where>
+    </select>
+</mapper>

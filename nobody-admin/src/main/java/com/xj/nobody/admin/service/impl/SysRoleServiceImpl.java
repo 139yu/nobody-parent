@@ -3,9 +3,11 @@ package com.xj.nobody.admin.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.xj.nobody.admin.domain.SysResource;
 import com.xj.nobody.admin.domain.SysRole;
+import com.xj.nobody.admin.domain.SysRoleMenu;
 import com.xj.nobody.admin.domain.SysRoleResource;
 import com.xj.nobody.admin.mapper.SysResourceMapper;
 import com.xj.nobody.admin.mapper.SysRoleMapper;
+import com.xj.nobody.admin.mapper.SysRoleMenuMapper;
 import com.xj.nobody.admin.mapper.SysRoleResourceMapper;
 import com.xj.nobody.admin.service.SysRoleService;
 import com.xj.nobody.commons.constants.RedisKey;
@@ -31,6 +33,8 @@ public class SysRoleServiceImpl implements SysRoleService {
     private SysResourceMapper resourceMapper;
     @Resource
     private SysRoleResourceMapper roleResourceMapper;
+    @Resource
+    private SysRoleMenuMapper roleMenuMapper;
     @Value("${spring.application.name}")
     private String applicationName;
     @Override
@@ -56,6 +60,42 @@ public class SysRoleServiceImpl implements SysRoleService {
         }
         redisService.del(RedisKey.ROLE_RESOURCE);
         redisService.hSetAll(RedisKey.ROLE_RESOURCE,roleResourceMap);
+    }
+
+    @Override
+    public void checkAndAddMenu(String roleKey, Integer menuId) {
+        SysRole role = roleMapper.selectOne(Wrappers.lambdaQuery(SysRole.class).eq(SysRole::getRoleKey, roleKey));
+        if (role == null) {
+            throw new RuntimeException("角色不存在");
+        }
+        Long count = roleMenuMapper.selectCount(Wrappers
+                .lambdaQuery(SysRoleMenu.class)
+                .eq(SysRoleMenu::getRoleId, role.getId())
+                .eq(SysRoleMenu::getMenuId, menuId));
+        if (count < 1) {
+            SysRoleMenu roleMenu = new SysRoleMenu();
+            roleMenu.setRoleId(role.getId());
+            roleMenu.setMenuId(menuId);
+            roleMenuMapper.insert(roleMenu);
+        }
+    }
+
+    @Override
+    public void checkAndDeleteMenu(String roleKey, Integer menuId) {
+        SysRole role = roleMapper.selectOne(Wrappers.lambdaQuery(SysRole.class).eq(SysRole::getRoleKey, roleKey));
+        if (role == null) {
+            throw new RuntimeException("角色不存在");
+        }
+        Long count = roleMenuMapper.selectCount(Wrappers
+                .lambdaQuery(SysRoleMenu.class)
+                .eq(SysRoleMenu::getRoleId, role.getId())
+                .eq(SysRoleMenu::getMenuId, menuId));
+        if (count > 0) {
+            roleMenuMapper.delete(Wrappers
+                    .lambdaQuery(SysRoleMenu.class)
+                    .eq(SysRoleMenu::getRoleId, role.getId())
+                    .eq(SysRoleMenu::getMenuId, menuId));
+        }
     }
 
 }

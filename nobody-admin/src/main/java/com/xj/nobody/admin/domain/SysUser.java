@@ -37,7 +37,14 @@ public class SysUser extends BaseEntity implements Serializable {
      * 最后登录时间
      */
     private Date loginTime;
-
+    /**
+     * 用户手机
+     */
+    private String phone;
+    /**
+     * 用户头像
+     */
+    private String avatar;
 
     /**
      * 邮箱

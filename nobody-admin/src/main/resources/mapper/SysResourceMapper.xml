@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xj.nobody.admin.mapper.SysResourceMapper">
+
+    <select id="getUserResources" resultType="com.xj.nobody.admin.domain.SysResource" parameterType="int">
+        SELECT
+            r.id,
+            r.NAME,
+            r.url,
+            r.description
+        FROM
+            sys_resource r
+                INNER JOIN sys_role_resource rr ON r.id = rr.resource_id
+                INNER JOIN sys_user_role ur ON ur.role_id = rr.role_id
+        WHERE
+            ur.user_id = #{userId}
+    </select>
+    <select id="selectExists" resultType="java.lang.Integer"
+            parameterType="com.xj.nobody.admin.domain.SysResource">
+        select
+            count(1)
+        from sys_resource
+        <where>
+            <if test="name != null and name != ''">and name = #{name}</if>
+            <if test="url != null and url != ''">and url = #{url}</if>
+        </where>
+    </select>
+    <select id="unique" resultType="java.lang.Integer" parameterType="com.xj.nobody.admin.domain.SysResource">
+        select count(1) from sys_resource
+        <where>
+            id != #{id}
+            <if test="name != null and name != ''">and name = #{name}</if>
+            <if test="url != null and url != ''">and url = #{url}</if>
+        </where>
+    </select>
+</mapper>

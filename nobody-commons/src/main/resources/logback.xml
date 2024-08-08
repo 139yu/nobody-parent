@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <!--
+            %-10level 日志级别（设置10个字符，字符不够空格补齐，左对齐）
+            %d{yyyy-MM-dd HH:mm:ss.SSS} 日期
+            %c 当前类全限定名
+            %M 当前执行日志的方法
+            %L 行号
+            %thread 线程名称
+            %m或者%msg 信息
+            %n 换行
+            -->
+    <property name="logDir" value="E:\\WorkSpace\\nobody-parent\\log"/>
+    <!--日志输出格式-->
+    <property name="pattern" value="%d{yyyy-MM-dd HH:mm:ss} [%-5level] %c %M %thread %L: %m%n"/>
+
+    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+    </appender>
+
+
+
+    <appender name="fileAppender" class="ch.qos.logback.core.FileAppender">
+        <!--配置过滤器，等于配置的级别才输出-->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!--设置日志输出级别-->
+            <level>ERROR</level>
+            <!--高于level中设置的级别，则打印日志-->
+            <onMatch>ACCEPT</onMatch>
+            <!--低于则不打印-->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <file>${logDir}\error.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${pattern}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="consoleAppender"/>
+        <appender-ref ref="fileAppender"/>
+    </root>
+</configuration>

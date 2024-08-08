@@ -25,4 +25,5 @@ public interface AuthConstants {
     String ADMIN_CLIENT_ID = "nobody-admin";
     String DEFAULT_GRANT_TYPE = "password";
     String CLIENT_SECRET = "nobody";
+    String SUPER_ROLE = "nobody";
 }
